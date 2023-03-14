@@ -4,7 +4,9 @@
     <projectFile>ITS291.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="latest push">
+    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="remove warnings">
+      <change afterPath="$PROJECT_DIR$/ITS291.sln.DotSettings.user" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -91,7 +93,7 @@
       <updated>1678747072367</updated>
       <workItem from="1678747073036" duration="13705000" />
       <workItem from="1678810117974" duration="2108000" />
-      <workItem from="1678826293444" duration="1027000" />
+      <workItem from="1678826293444" duration="2372000" />
     </task>
     <task id="LOCAL-00001" summary="Rearrange Project">
       <created>1678747135947</created>
@@ -142,7 +144,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678826842005</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="remove warnings">
+      <created>1678828665763</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1678828665763</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -171,6 +180,7 @@
     <MESSAGE value="Start on assignment 1" />
     <MESSAGE value="workspace.xml showed up late" />
     <MESSAGE value="latest push" />
-    <option name="LAST_COMMIT_MESSAGE" value="latest push" />
+    <MESSAGE value="remove warnings" />
+    <option name="LAST_COMMIT_MESSAGE" value="remove warnings" />
   </component>
 </project>
