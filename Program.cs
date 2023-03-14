@@ -1,10 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-IAnsiConsole ansi = AnsiConsole.Create(new AnsiConsoleSettings {
-    Ansi = AnsiSupport.Yes,
-    ColorSystem = ColorSystemSupport.TrueColor,
-});
-
-string[] logins = {
+﻿string[] logins = {
     "user1",
     "user2",
     "user3"
@@ -31,17 +25,16 @@ string AccountBalanceColor(int userId) {
 }
 
 int Logon() {
-    var name = new TextPrompt<string>("[green]login[/]:")
+    var namePrompt = "[bold green]login[/] ([dim]username[/]):";
+    var name = AnsiConsole.Prompt(new TextPrompt<string>(namePrompt)
         .AddChoices(logins).HideChoices()
-        .InvalidChoiceMessage("[red]unknown login[/]")
-        .Show(ansi);
+        .InvalidChoiceMessage("[red]unknown login[/]"));
 
     var userId = Array.IndexOf(logins, name);
     
-    var _ = new TextPrompt<string>("Enter [cyan1]password[/]?")
+    var _ = AnsiConsole.Prompt(new TextPrompt<string>("Enter [cyan1]password[/]?")
         .Secret().PromptStyle("mediumorchid1_1")
-        .Validate(p => p == passwords[userId], "[red]invalid password[/]")
-        .Show(ansi);
+        .Validate(p => p == passwords[userId], "[red]invalid password[/]"));
 
     return userId;
 }
@@ -58,7 +51,8 @@ void ListUsers() {
     foreach ((string name, string password, decimal balance) in zipped) {
         table.AddRow($"{id}", name, password, $"[{AccountBalanceColor(id++)}]{balance:C}[/]");
     }
-    ansi.Write(table);
+    
+    AnsiConsole.Write(table);
 }
 
 void Main() {
