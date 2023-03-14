@@ -32,7 +32,7 @@ int Logon() {
 
     var userId = Array.IndexOf(logins, name);
     
-    var _ = AnsiConsole.Prompt(new TextPrompt<string>("Enter [cyan1]password[/]?")
+    AnsiConsole.Prompt(new TextPrompt<string>("Enter [cyan1]password[/]?")
         .Secret().PromptStyle("mediumorchid1_1")
         .Validate(p => p == passwords[userId], "[red]invalid password[/]"));
 
@@ -42,23 +42,28 @@ int Logon() {
 void ListUsers() {
     Table table = new();
     table.AddColumns(
-        new TableColumn("id"),
-        new TableColumn("name"),
-        new TableColumn("password"),
-        new TableColumn("balance")
+        new TableColumn("[bold yellow]id[/]"),
+        new TableColumn("[bold green]name[/]"),
+        new TableColumn("[bold mediumorchid1_1]password[/]"),
+        new TableColumn("[bold blue]balance[/]")
     );
     var zipped = logins.Zip(passwords, accountBalances); int id = 0;
     foreach ((string name, string password, decimal balance) in zipped) {
-        table.AddRow($"{id}", name, password, $"[{AccountBalanceColor(id++)}]{balance:C}[/]");
+        table.AddRow(
+            $"[yellow]{id}[/]",
+            $"[green]{name}[/]",
+            $"[mediumorchid1_1]{password}[/]",
+            $"[{AccountBalanceColor(id++)}]{balance:C}[/]"
+        );
     }
-    
     AnsiConsole.Write(table);
 }
 
 void Main() {
     Console.OutputEncoding = System.Text.Encoding.UTF8;
-    var _ = Logon();
+    Logon();
     ListUsers();
+    Console.ReadLine();
 }
 
 Main();
