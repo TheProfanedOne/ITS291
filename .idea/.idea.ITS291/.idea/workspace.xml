@@ -4,8 +4,10 @@
     <projectFile>ITS291.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Stragglers">
+    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Spectre Test">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ITS291.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/ITS291.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,6 +27,9 @@
       </UrlAndAccount>
     </option>
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///home/matthew-mint/Documents/school/cs-dotnet/ITS291/Program.cs" root0="SKIP_HIGHLIGHTING" />
+  </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -43,7 +48,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "settings.editor.selected.configurable": "reference.settings.ide.settings.web.browsers",
+    "settings.editor.selected.configurable": "preferences.sourceCode.C#",
     "vue.rearranger.settings.migration": "true"
   },
   "keyToStringList": {
@@ -82,7 +87,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1678747072367</updated>
-      <workItem from="1678747073036" duration="824000" />
+      <workItem from="1678747073036" duration="12608000" />
     </task>
     <task id="LOCAL-00001" summary="Rearrange Project">
       <created>1678747135947</created>
@@ -98,7 +103,21 @@
       <option name="project" value="LOCAL" />
       <updated>1678747195454</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Add Spectre.Console">
+      <created>1678748030277</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1678748030277</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Spectre Test">
+      <created>1678748168215</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1678748168215</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -122,6 +141,8 @@
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="Rearrange Project" />
     <MESSAGE value="Stragglers" />
-    <option name="LAST_COMMIT_MESSAGE" value="Stragglers" />
+    <MESSAGE value="Add Spectre.Console" />
+    <MESSAGE value="Spectre Test" />
+    <option name="LAST_COMMIT_MESSAGE" value="Spectre Test" />
   </component>
 </project>
