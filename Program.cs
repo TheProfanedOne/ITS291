@@ -47,8 +47,8 @@ void ListUsers() {
         new TableColumn("[bold mediumorchid1_1]password[/]"),
         new TableColumn("[bold blue]balance[/]")
     );
-    var zipped = logins.Zip(passwords, accountBalances); int id = 0;
-    foreach ((string name, string password, decimal balance) in zipped) {
+    var userData = logins.Zip(passwords, accountBalances); int id = 0;
+    foreach ((string name, string password, decimal balance) in userData) {
         table.AddRow(
             $"[yellow]{id}[/]",
             $"[green]{name}[/]",
@@ -61,7 +61,7 @@ void ListUsers() {
 
 void Main() {
     Console.OutputEncoding = System.Text.Encoding.UTF8;
-    Logon();
+    var _ = Logon();
     ListUsers();
     Console.ReadLine();
 }
