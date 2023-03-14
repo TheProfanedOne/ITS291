@@ -4,7 +4,7 @@
     <projectFile>ITS291.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Spectre Test">
+    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Start on assignment 1">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ITS291.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/ITS291.csproj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
@@ -87,7 +87,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1678747072367</updated>
-      <workItem from="1678747073036" duration="12608000" />
+      <workItem from="1678747073036" duration="13562000" />
     </task>
     <task id="LOCAL-00001" summary="Rearrange Project">
       <created>1678747135947</created>
@@ -117,7 +117,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678748168215</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Start on assignment 1">
+      <created>1678767817935</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1678767817935</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -143,6 +150,7 @@
     <MESSAGE value="Stragglers" />
     <MESSAGE value="Add Spectre.Console" />
     <MESSAGE value="Spectre Test" />
-    <option name="LAST_COMMIT_MESSAGE" value="Spectre Test" />
+    <MESSAGE value="Start on assignment 1" />
+    <option name="LAST_COMMIT_MESSAGE" value="Start on assignment 1" />
   </component>
 </project>
