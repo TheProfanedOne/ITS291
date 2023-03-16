@@ -4,7 +4,7 @@
     <projectFile>ITS291.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Week 1" />
+    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="workspace.xml is once again a straggler" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -94,7 +94,7 @@
       <workItem from="1678810117974" duration="2108000" />
       <workItem from="1678826293444" duration="6353000" />
       <workItem from="1678914232445" duration="1830000" />
-      <workItem from="1678997358819" duration="8639000" />
+      <workItem from="1678997358819" duration="8944000" />
     </task>
     <task id="LOCAL-00001" summary="Rearrange Project">
       <created>1678747135947</created>
@@ -180,7 +180,21 @@
       <option name="project" value="LOCAL" />
       <updated>1679006079286</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="workspace.xml is once again a straggler">
+      <created>1679006206251</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1679006206251</updated>
+    </task>
+    <task id="LOCAL-00014" summary="workspace.xml is once again a straggler">
+      <created>1679006215481</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1679006215481</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -213,6 +227,7 @@
     <MESSAGE value="workspace.xml always appears late" />
     <MESSAGE value="Assignment 1 Complete" />
     <MESSAGE value="Week 1" />
-    <option name="LAST_COMMIT_MESSAGE" value="Week 1" />
+    <MESSAGE value="workspace.xml is once again a straggler" />
+    <option name="LAST_COMMIT_MESSAGE" value="workspace.xml is once again a straggler" />
   </component>
 </project>
