@@ -1,4 +1,9 @@
-﻿string[] logins = {
+﻿IAnsiConsole ansi = AnsiConsole.Create(new AnsiConsoleSettings {
+    Ansi = AnsiSupport.Detect,
+    ColorSystem = ColorSystemSupport.Detect,
+});
+
+string[] logins = {
     "user1",
     "user2",
     "user3"
@@ -16,25 +21,29 @@ decimal[] accountBalances = {
     -5.00M
 };
 
-string AccountBalanceColor(int userId) {
-    return accountBalances[userId] switch {
+string BalanceColor(decimal balance) {
+    return balance switch {
         > 0 => "green",
         < 0 => "red",
-        _ => "yellow"
+        _   => "yellow"
     };
 }
 
-int Logon() {
-    var namePrompt = "[bold green]login[/] ([dim]username[/]):";
-    var name = AnsiConsole.Prompt(new TextPrompt<string>(namePrompt)
-        .AddChoices(logins).HideChoices()
-        .InvalidChoiceMessage("[red]unknown login[/]"));
+string AccountBalanceColor(int userId) {
+    return BalanceColor(accountBalances[userId]);
+}
 
-    var userId = Array.IndexOf(logins, name);
-    
-    AnsiConsole.Prompt(new TextPrompt<string>("Enter [cyan1]password[/]?")
+int Logon() {
+    const string namePrompt = "[bold green]login[/] ([dim]username[/]):";
+    var userId = Array.IndexOf(logins, new TextPrompt<string>(namePrompt)
+        .AddChoices(logins).HideChoices()
+        .InvalidChoiceMessage("[red]unknown login[/]")
+        .Show(ansi));
+
+    var _ = new TextPrompt<string>("Enter [cyan1]password[/]?")
         .Secret().PromptStyle("mediumorchid1_1")
-        .Validate(p => p == passwords[userId], "[red]invalid password[/]"));
+        .Validate(p => p == passwords[userId], "[red]invalid password[/]")
+        .Show(ansi);
 
     return userId;
 }
@@ -56,14 +65,83 @@ void ListUsers() {
             $"[{AccountBalanceColor(id++)}]{balance:C}[/]"
         );
     }
-    AnsiConsole.Write(table);
+    ansi.Write(table);
+}
+
+void ShowUserDetails(int userId) {
+    ansi.Write(new Table()
+        .AddColumns(
+            new TableColumn("[bold mediumorchid1_1]Property[/]"),
+            new TableColumn("[bold green]Value[/]")
+        )
+        .AddRow("[mediumorchid1_1]id[/]", $"[green]{userId}[/]")
+        .AddRow("[mediumorchid1_1]name[/]", $"[green]{logins[userId]}[/]")
+        .AddRow("[mediumorchid1_1]password[/]", $"[green]{passwords[userId]}[/]")
+        .AddRow(
+            "[mediumorchid1_1]balance[/]",
+            $"[{AccountBalanceColor(userId)}]{accountBalances[userId]:C}[/]"
+        ));
+}
+
+void IncBalance(int userId) {
+    var amount = new TextPrompt<decimal>("How much do you want to [green]add[/]?")
+        .Validate(a => a >= 0, "[red]Amount must be positive[/]")
+        .Show(ansi);
+
+    var balColor = BalanceColor(amount);
+    var accBalColor = AccountBalanceColor(userId);
+    ansi.MarkupLine($"Adding [{balColor}]{amount:C}[/] to [{accBalColor}]{accountBalances[userId]:C}[/]");
+    accountBalances[userId] += amount;
+    ansi.MarkupLine($"Account Balance now [{AccountBalanceColor(userId)}]{accountBalances[userId]:C}[/]");
+}
+
+void DecBalance(int userId) {
+    var amount = new TextPrompt<decimal>("How much do you want to [red]remove[/]?")
+        .Validate(a => a >= 0, "[red]Amount must be positive[/]")
+        .Show(ansi);
+
+    var balColor = BalanceColor(amount * -1);
+    var accBalColor = AccountBalanceColor(userId);
+    ansi.MarkupLine($"Removing [{balColor}]{amount:C}[/] from [{accBalColor}]{accountBalances[userId]:C}[/]");
+    accountBalances[userId] -= amount;
+    ansi.MarkupLine($"Account Balance now [{AccountBalanceColor(userId)}]{accountBalances[userId]:C}[/]");
+}
+
+bool DoMenu(int userId) {
+    string[] selValues = {
+        "Increment Balance",
+        "Decrement Balance",
+        "List Users",
+        "Show User Details",
+        "Quit"
+    };
+
+    Action[] selActions = {
+        () => IncBalance(userId),
+        () => DecBalance(userId),
+        ListUsers,
+        () => ShowUserDetails(userId)
+    };
+    
+    var selection = new SelectionPrompt<string>()
+        .Title("[bold]What do you want to do?[/]")
+        .AddChoices(selValues)
+        .Show(ansi);
+
+    return selection switch {
+        "Quit" => false,
+        var sel when selValues.Contains(sel) => ((Func<bool>)(() => {
+            selActions[Array.IndexOf(selValues, sel)]();
+            return true;
+        }))(),
+        _ => throw new InvalidOperationException("Invalid Selection")
+    };
 }
 
 void Main() {
     Console.OutputEncoding = System.Text.Encoding.UTF8;
-    var _ = Logon();
-    ListUsers();
-    Console.ReadLine();
+    var userId = Logon();
+    while (DoMenu(userId)) {}
 }
 
 Main();

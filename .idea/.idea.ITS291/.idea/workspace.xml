@@ -4,11 +4,7 @@
     <projectFile>ITS291.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="remove warnings">
-      <change afterPath="$PROJECT_DIR$/ITS291.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.ITS291/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
-    </list>
+    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Assignment 1 Complete" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -31,6 +27,8 @@
     </option>
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///Dummy.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/c6387e5da518a68512abe87748e3a67607ab27f7f81e1f2436ac7523a2eb/AnsiConsoleSettings.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///home/matthew-mint/Documents/school/cs-dotnet/ITS291/Program.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
@@ -45,23 +43,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;terminal&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "settings.editor.selected.configurable": "preferences.sourceCode.C#",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;rider.external.source.directories&quot;: [
-      &quot;/home/matthew-mint/.config/JetBrains/Rider2022.3/resharper-host/DecompilerCache&quot;,
-      &quot;/home/matthew-mint/.config/JetBrains/Rider2022.3/resharper-host/SourcesCache&quot;,
-      &quot;/home/matthew-mint/.local/share/Symbols/src&quot;
+  "keyToStringList": {
+    "rider.external.source.directories": [
+      "/home/matthew-mint/.config/JetBrains/Rider2022.3/resharper-host/DecompilerCache",
+      "/home/matthew-mint/.config/JetBrains/Rider2022.3/resharper-host/SourcesCache",
+      "/home/matthew-mint/.local/share/Symbols/src"
     ]
   }
-}</component>
+}]]></component>
   <component name="RunManager">
     <configuration name="ITS291" type="DotNetProject" factoryName=".NET Project">
       <option name="EXE_PATH" value="$PROJECT_DIR$/bin/Debug/net7.0/ITS291" />
@@ -93,7 +91,9 @@
       <updated>1678747072367</updated>
       <workItem from="1678747073036" duration="13705000" />
       <workItem from="1678810117974" duration="2108000" />
-      <workItem from="1678826293444" duration="2372000" />
+      <workItem from="1678826293444" duration="6353000" />
+      <workItem from="1678914232445" duration="1830000" />
+      <workItem from="1678997358819" duration="8287000" />
     </task>
     <task id="LOCAL-00001" summary="Rearrange Project">
       <created>1678747135947</created>
@@ -151,7 +151,21 @@
       <option name="project" value="LOCAL" />
       <updated>1678828665763</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="workspace.xml always appears late">
+      <created>1678828695004</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1678828695004</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Assignment 1 Complete">
+      <created>1679005808628</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1679005808628</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -181,6 +195,8 @@
     <MESSAGE value="workspace.xml showed up late" />
     <MESSAGE value="latest push" />
     <MESSAGE value="remove warnings" />
-    <option name="LAST_COMMIT_MESSAGE" value="remove warnings" />
+    <MESSAGE value="workspace.xml always appears late" />
+    <MESSAGE value="Assignment 1 Complete" />
+    <option name="LAST_COMMIT_MESSAGE" value="Assignment 1 Complete" />
   </component>
 </project>
