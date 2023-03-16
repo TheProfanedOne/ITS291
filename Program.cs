@@ -1,6 +1,6 @@
 ﻿IAnsiConsole ansi = AnsiConsole.Create(new AnsiConsoleSettings {
     Ansi = AnsiSupport.Detect,
-    ColorSystem = ColorSystemSupport.Detect,
+    ColorSystem = ColorSystemSupport.Detect
 });
 
 string[] logins = {
