@@ -4,7 +4,7 @@
     <projectFile>ITS291.csproj</projectFile>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Assignment 1 Complete" />
+    <list default="true" id="9fcdc8be-f73d-4cb0-871b-52478dfd958b" name="Changes" comment="Week 1" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -29,6 +29,7 @@
   <component name="HighlightingSettingsPerFile">
     <setting file="mock:///Dummy.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/c6387e5da518a68512abe87748e3a67607ab27f7f81e1f2436ac7523a2eb/AnsiConsoleSettings.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///home/matthew-mint/Documents/school/cs-dotnet/ITS291/Program.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///home/matthew-mint/Documents/school/cs-dotnet/ITS291/Program.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
@@ -93,7 +94,7 @@
       <workItem from="1678810117974" duration="2108000" />
       <workItem from="1678826293444" duration="6353000" />
       <workItem from="1678914232445" duration="1830000" />
-      <workItem from="1678997358819" duration="8287000" />
+      <workItem from="1678997358819" duration="8639000" />
     </task>
     <task id="LOCAL-00001" summary="Rearrange Project">
       <created>1678747135947</created>
@@ -165,7 +166,21 @@
       <option name="project" value="LOCAL" />
       <updated>1679005808628</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Assignment 1 Complete">
+      <created>1679005857062</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1679005857062</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Week 1">
+      <created>1679006079286</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1679006079286</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -197,6 +212,7 @@
     <MESSAGE value="remove warnings" />
     <MESSAGE value="workspace.xml always appears late" />
     <MESSAGE value="Assignment 1 Complete" />
-    <option name="LAST_COMMIT_MESSAGE" value="Assignment 1 Complete" />
+    <MESSAGE value="Week 1" />
+    <option name="LAST_COMMIT_MESSAGE" value="Week 1" />
   </component>
 </project>
