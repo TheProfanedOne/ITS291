@@ -136,7 +136,7 @@ bool DoMenu(int userId) {
         "Quit"
     };
 
-    // Parallel array of actions to perform when the corresponding selection is made
+    // Parallel array of function references to call when the corresponding selection is made
     Action[] selActions = {
         () => IncBalance(userId),
         () => DecBalance(userId),
