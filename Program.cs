@@ -125,35 +125,35 @@ void DecBalance(int userId) {
     ansi.MarkupLine($"Account Balance now [{AccountBalanceColor(userId)}]{accountBalances[userId]:C}[/]");
 }
 
+// Parallel array of menu options
+string[] selValues = {
+    "Increment Balance",
+    "Decrement Balance",
+    "List Users",
+    "Show User Details",
+    "Quit"
+};
+
+// Parallel array of function references to call when the corresponding selection is made
+Action<int>[] selActions = {
+    IncBalance,
+    DecBalance,
+    _ => ListUsers(),
+    ShowUserDetails
+};
+
 // Displays a menu of available options and continuously prompts the user for input until they quit
 bool DoMenu(int userId) {
-    // Parallel array of menu options
-    string[] selValues = {
-        "Increment Balance",
-        "Decrement Balance",
-        "List Users",
-        "Show User Details",
-        "Quit"
-    };
-
-    // Parallel array of function references to call when the corresponding selection is made
-    Action[] selActions = {
-        () => IncBalance(userId),
-        () => DecBalance(userId),
-        ListUsers,
-        () => ShowUserDetails(userId)
-    };
-    
-    var selection = new SelectionPrompt<string>()
+    var sel = new SelectionPrompt<string>()
         .Title("[bold]What do you want to do?[/]")
         .AddChoices(selValues)
         .Show(ansi);
 
-    return selection switch {
+    return sel switch {
         "Quit" => false,
         // A rather hacky way of having a multi-line case value in a switch expression
-        var sel when selValues.Contains(sel) => ((Func<bool>)(() => {
-            selActions[Array.IndexOf(selValues, sel)]();
+        _ when selValues.Contains(sel) => ((Func<bool>)(() => {
+            selActions[Array.IndexOf(selValues, sel)](userId);
             return true;
         }))(),
         _ => throw new InvalidOperationException("Invalid Selection")
