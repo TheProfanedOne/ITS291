@@ -166,7 +166,8 @@ namespace ITS291;
         ("Add Item", AddItem),
         ("Remove Item", RemoveItem),
         ("List Users", _ => ListUsers()),
-        ("Show User Details", ShowUserDetails)
+        ("Show User Details", ShowUserDetails),
+        ("Quit", _ => {})
     };
     
     // Displays a menu of available options and continuously prompts the user for input until they quit
