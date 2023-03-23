@@ -7,7 +7,7 @@ namespace ITS291;
  * Author: Matthew Mousseau
  * Desc: The entrypoint for my ITS291 project
  */
- internal static class Program {
+internal static class Program {
     // IAnsiConsole instance to be used by the various functions
     private static readonly IAnsiConsole ansi = AnsiConsole.Create(new() {
         Ansi = AnsiSupport.Detect,
@@ -172,20 +172,21 @@ namespace ITS291;
     
     // Displays a menu of available options and continuously prompts the user for input until they quit
     private static bool DoMenu(User user) {
-        var sel = Array.IndexOf(selections, new SelectionPrompt<(string, Action<User>)>()
+        var sel = new SelectionPrompt<(string, Action<User>)>()
             .Title("[bold]What do you want to do?[/]")
             .AddChoices(selections).UseConverter(s => s.Item1)
-            .Show(ansi));
+            .Show(ansi);
 
-        return sel switch {
+        var selIdx = Array.IndexOf(selections, sel);
+        var retVal = selIdx switch {
             7 => false,
             // A rather hacky way of having a multi-line case value in a switch expression
-            < 7 and >= 0 => ((Func<bool>) delegate {
-                selections[sel].Item2(user);
-                return true;
-            })(),
+            < 7 and >= 0 => true,
             _ => throw new InvalidOperationException("Invalid Selection")
         };
+        
+        if (retVal) sel.Item2(user);
+        return retVal;
     }
 
     public static void Main(string[] args) {
@@ -193,4 +194,4 @@ namespace ITS291;
         var userId = Logon();
         while (DoMenu(userId)) {}
     }
- }
+}
