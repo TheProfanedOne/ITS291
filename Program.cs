@@ -66,14 +66,13 @@ namespace ITS291;
             new TableColumn("[bold blue]balance[/]")
         );
         
-        foreach (var user in users) {
-            table.AddRow(
-                new Markup($"[yellow]{user.UserId}[/]"),
-                new Markup($"[green]{user.Username}[/]"),
-                new Markup($"[mediumorchid1_1]{user.Items.Count}[/]"),
-                user.AccountBalanceMarkup
-            );
-        }
+        foreach (var user in users) table.AddRow(
+            new Markup($"[yellow]{user.UserId}[/]"),
+            new Markup($"[green]{user.Username}[/]"),
+            new Markup($"[mediumorchid1_1]{user.Items.Count}[/]"),
+            user.AccountBalanceMarkup
+        );
+        
         ansi.Write(table);
     }
     
@@ -125,35 +124,63 @@ namespace ITS291;
         }
     }
     
-    // Parallel array of menu options
-    private static readonly string[] selValues = {
-        "Increment Balance",
-        "Decrement Balance",
-        "List Users",
-        "Show User Details",
-        "Quit"
-    };
+    private static void ListItems(User user) {
+        var table = new Table().AddColumns(
+            new TableColumn("[bold green]Name[/]"),
+            new TableColumn("[bold blue]Price[/]")
+        );
+        
+        foreach (var (name, price) in user.Items) table.AddRow(
+            $"[green]{name}[/]", $"[blue]{price:C}[/]"
+        );
+        
+        ansi.Write(table);
+    }
     
-    // Parallel array of functions to call when the corresponding selection is made
-    private static readonly Action<User>[] selActions = {
-        IncBalance,
-        DecBalance,
-        _ => ListUsers(),
-        ShowUserDetails
+    private static void AddItem(User user) {
+        var name = new TextPrompt<string>("What is the [green]name[/] of the item you wish to add?")
+            .Validate(string.IsNullOrWhiteSpace, "[red]Name cannot be empty[/]")
+            .Show(ansi);
+            
+        var price = new TextPrompt<decimal>("What is the [blue]price[/] of the item?")
+            .Validate(p => p >= 0, "[red]Price must be positive[/]")
+            .Show(ansi);
+        
+        user.AddItem(name, price);
+    }
+    
+    private static void RemoveItem(User user) {
+        var item = new SelectionPrompt<Item>()
+            .Title("What is the [green]name[/] of the item you wish to remove?")
+            .AddChoices(user.Items).UseConverter(item => item.Name)
+            .Show(ansi);
+        
+        user.RemoveItem(item);
+    }
+
+    // Array of tuples containing the menu option text and the function to call when it is selected
+    private static readonly (string, Action<User>)[] selections = {
+        ("Increment Balance", IncBalance),
+        ("Decrement Balance", DecBalance),
+        ("List Items", ListItems),
+        ("Add Item", AddItem),
+        ("Remove Item", RemoveItem),
+        ("List Users", _ => ListUsers()),
+        ("Show User Details", ShowUserDetails)
     };
     
     // Displays a menu of available options and continuously prompts the user for input until they quit
     private static bool DoMenu(User user) {
-        var sel = Array.IndexOf(selValues, new SelectionPrompt<string>()
+        var sel = Array.IndexOf(selections, new SelectionPrompt<(string, Action<User>)>()
             .Title("[bold]What do you want to do?[/]")
-            .AddChoices(selValues)
+            .AddChoices(selections).UseConverter(s => s.Item1)
             .Show(ansi));
 
         return sel switch {
             4 => false,
             // A rather hacky way of having a multi-line case value in a switch expression
             < 4 and >= 0 => ((Func<bool>) delegate {
-                selActions[sel](user);
+                selections[sel].Item2(user);
                 return true;
             })(),
             _ => throw new InvalidOperationException("Invalid Selection")
