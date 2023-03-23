@@ -1,25 +1,30 @@
 namespace ITS291;
 
 public class User {
+    // Adds an item to the user's list of items
     public void AddItem(string name, decimal price) {
         _items.Add(new(name, price));
     }
     
+    // Removes an item from the user's list of items
     public void RemoveItem(Item item) {
         _items.Remove(item);
     }
     
+    // Increments the user's account balance
     public void IncrementBalance(decimal amount) {
         if (amount < 0) throw new ArgumentException("Amount must be positive");
         _bal += amount;
     }
     
+    // Decrements the user's account balance
     public void DecrementBalance(decimal amount, bool preventOverdraw = true) {
         if (amount < 0) throw new ArgumentException("Amount must be positive");
         if (preventOverdraw && amount > _bal) throw new BalanceOverdrawException();
         _bal -= amount;
     }
     
+    // Checks if the given password matches the user's password
     public bool CheckPassword(string password) {
         return password == _pass;
     }
