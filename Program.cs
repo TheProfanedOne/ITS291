@@ -178,9 +178,9 @@ namespace ITS291;
             .Show(ansi));
 
         return sel switch {
-            4 => false,
+            7 => false,
             // A rather hacky way of having a multi-line case value in a switch expression
-            < 4 and >= 0 => ((Func<bool>) delegate {
+            < 7 and >= 0 => ((Func<bool>) delegate {
                 selections[sel].Item2(user);
                 return true;
             })(),
