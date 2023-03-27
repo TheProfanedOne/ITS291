@@ -1,5 +1,3 @@
-using Spectre.Console.Rendering;
-
 namespace ITS291;
 
 /*
@@ -13,11 +11,6 @@ internal static class Program {
         Ansi = AnsiSupport.Detect,
         ColorSystem = ColorSystemSupport.Detect
     });
-    
-    private static void AnsiWriteLine(IRenderable thing) {
-        ansi.Write(thing);
-        ansi.WriteLine();
-    }
 
     // Array of users
     private static readonly IReadOnlyList<User> users = new List<User>(new User[] {
@@ -50,7 +43,7 @@ internal static class Program {
         
         var _ = new TextPrompt<string>("Enter [cyan1]password[/]?")
             .Secret().PromptStyle("mediumorchid1_1")
-            .Validate(p => user.CheckPassword(p), "[red]invalid password[/]")
+            .Validate(user.CheckPassword, "[red]invalid password[/]")
             .Show(ansi);
         
         return user;
@@ -58,8 +51,7 @@ internal static class Program {
     
     // Creates and displays a table of all users' information
     private static void ListUsers() {
-        Table table = new();
-        table.AddColumns(
+        var table = new Table().AddColumns(
             new TableColumn("[bold yellow]id[/]"),
             new TableColumn("[bold green]name[/]"),
             new TableColumn("[bold mediumorchid1_1]item count[/]"),
@@ -95,13 +87,9 @@ internal static class Program {
             .Validate(a => a >= 0, "[red]Amount must be positive[/]")
             .Show(ansi);
 
-        ansi.Markup($"Adding [{User.BalanceColor(amount)}]{amount:C}[/] to ");
-        AnsiWriteLine(user.AccountBalanceMarkup);
-        
+        ansi.WriteLine($"Adding [{User.BalanceColor(amount)}]{amount:C}[/] to ", user.AccountBalanceMarkup);
         user.IncrementBalance(amount);
-        
-        ansi.Markup("Account Balance now ");
-        AnsiWriteLine(user.AccountBalanceMarkup);
+        ansi.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
     }
     
     // Prompts the user for an amount to remove from the logged in user's balance
@@ -111,19 +99,17 @@ internal static class Program {
             .Show(ansi);
         
         try {
-            var oldBalanceMarkup = user.AccountBalanceMarkup;
+            var oldMarkup = user.AccountBalanceMarkup;
             user.DecrementBalance(amount);
-            
-            ansi.Markup($"Removing [{User.BalanceColor(amount * -1)}]{amount:C}[/] from ");
-            AnsiWriteLine(oldBalanceMarkup);
+            ansi.WriteLine($"Removing [{User.BalanceColor(amount * -1)}]{amount:C}[/] from ", oldMarkup);
         } catch (BalanceOverdrawException e) {
             ansi.MarkupLine(e.Message);
         } finally {
-            ansi.Markup($"Account Balance now ");
-            AnsiWriteLine(user.AccountBalanceMarkup);
+            ansi.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
         }
     }
     
+    // Lists all of the user's items
     private static void ListItems(User user) {
         var table = new Table().AddColumns(
             new TableColumn("[bold green]Name[/]"),
@@ -137,6 +123,7 @@ internal static class Program {
         ansi.Write(table);
     }
     
+    // Adds an item to the user's list of items
     private static void AddItem(User user) {
         var name = new TextPrompt<string>("What is the [green]name[/] of the item you wish to add?")
             .Validate(string.IsNullOrWhiteSpace, "[red]Name cannot be empty[/]")
@@ -149,6 +136,7 @@ internal static class Program {
         user.AddItem(name, price);
     }
     
+    // Removes an item from the users's list of items
     private static void RemoveItem(User user) {
         var item = new SelectionPrompt<Item>()
             .Title("What is the [green]name[/] of the item you wish to remove?")

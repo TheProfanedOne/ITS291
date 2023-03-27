@@ -1,6 +1,6 @@
 namespace ITS291;
 
-public class User {
+public sealed class User {
     // Adds an item to the user's list of items
     public void AddItem(string name, decimal price) {
         _items.Add(new(name, price));
@@ -43,7 +43,7 @@ public class User {
     public required string     Password             { set => _pass = value; }
     public IReadOnlyList<Item> Items                => _items;
     public decimal             AccountBalance       { get => _bal; init => _bal = value; }
-    public Markup              AccountBalanceMarkup => Markup.FromInterpolated($"[{BalanceColor(AccountBalance)}]{AccountBalance:C}[/]");
+    public Markup              AccountBalanceMarkup => Markup.FromInterpolated($"[{BalanceColor(_bal)}]{_bal:C}[/]");
 
     private string     _pass = "";
     private List<Item> _items = new();
