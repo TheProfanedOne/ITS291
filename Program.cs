@@ -107,7 +107,7 @@ internal static class Program {
         keys.Insert(0, "<cancel>");
         
         var name = new SelectionPrompt<string>()
-            .Title("Enter [green]username[/] to remove:")
+            .Title("Select [green]user[/] to remove:")
             .AddChoices(keys)
             .Show(AnsiConsole.Console);
         
