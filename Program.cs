@@ -36,7 +36,6 @@ internal static class Program {
                 WriteIndented = true,
                 Converters = { new User.UserJsonConverter() }
             });
-            AnsiConsole.MarkupLine("[green]Users saved[/]");
         } catch (JsonException) {
             AnsiConsole.MarkupLine("[red]Error saving users[/]");
         }
