@@ -85,12 +85,12 @@ internal static class Program {
         var pass = new TextPrompt<string>("Enter [cyan1]password[/]:")
             .Secret().PromptStyle("mediumorchid1_1")
             .Validate(p =>
-                string.IsNullOrWhiteSpace(p) ? ValidationResult.Error("Password cannot be empty") :
-                p.Length < 8                 ? ValidationResult.Error("Password must be at least 8 characters") :
-                p.Any(char.IsWhiteSpace)     ? ValidationResult.Error("Password cannot contain whitespace") :
-                !p.Any(char.IsUpper)         ? ValidationResult.Error("Password must contain at least one uppercase letter") :
-                !p.Any(char.IsLower)         ? ValidationResult.Error("Password must contain at least one lowercase letter") :
-                p.All(char.IsLetter)         ? ValidationResult.Error("Password must contain at least one non-letter character")
+                string.IsNullOrWhiteSpace(p) ? ValidationResult.Error("[red]Password cannot be empty[/]") :
+                p.Length < 8                 ? ValidationResult.Error("[red]Password must be at least 8 characters[/]") :
+                p.Any(char.IsWhiteSpace)     ? ValidationResult.Error("[red]Password cannot contain whitespace[/]") :
+                !p.Any(char.IsUpper)         ? ValidationResult.Error("[red]Password must contain at least one uppercase letter[/]") :
+                !p.Any(char.IsLower)         ? ValidationResult.Error("[red]Password must contain at least one lowercase letter[/]") :
+                p.All(char.IsLetter)         ? ValidationResult.Error("[red]Password must contain at least one non-letter character[/]")
                                              : ValidationResult.Success()
             )
             .Show(AnsiConsole.Console);
