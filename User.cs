@@ -4,15 +4,17 @@ using System.Text.Json.Serialization;
 using System.Security.Cryptography;
 
 public sealed class User {
+    // Primary Constructor
     public User(string name, string pass, decimal bal = 0.00M) {
         UserId = Guid.NewGuid();
         Username = name;
-        _salt = Guid.NewGuid().ToString();
+        _salt = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
         PasswordHash = ComputePasswordHash(_salt, pass);
         _bal = bal;
         _items = new();
     }
     
+    // Secondary Constructor (for reading from JSON)
     public User(ref Utf8JsonReader reader) {
         if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException("Expected StartObject");
         
@@ -39,8 +41,6 @@ public sealed class User {
                     case "items":
                         _items = JsonSerializer.Deserialize<List<Item>>(ref reader) ?? new();
                         break;
-                    default:
-                        throw new JsonException($"Unexpected property name: {pName}");
                 }
             }
         }
@@ -83,6 +83,7 @@ public sealed class User {
         };
     }
     
+    // Computes the password hash for a given password
     private static string ComputePasswordHash(string salt, string pass) {
         string SHA256OfString(string s) {
             var bytes = System.Text.Encoding.UTF8.GetBytes(s);

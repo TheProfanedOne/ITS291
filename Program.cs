@@ -17,11 +17,10 @@ internal static class Program {
             var jsonList = JsonSerializer.Deserialize<List<User>>(fStream, new JsonSerializerOptions {
                 Converters = { new User.UserJsonConverter() }
             });
-                
-            if (jsonList is null) throw new JsonException();
-                
+            
             users.Clear();
-            foreach (var user in jsonList) users.Add(user.Username, user);
+            foreach (var user in jsonList ?? throw new JsonException())
+                users.Add(user.Username, user);
 #nullable disable
         } catch (JsonException) {
             users.Clear();
@@ -221,10 +220,10 @@ internal static class Program {
             .AddChoices(selections).UseConverter(s => s.Item1)
             .Show(AnsiConsole.Console);
         
-        var retVal = Array.IndexOf(selections, sel) switch {
-            9 => false,
+        var retVal = sel.Item1 switch {
+            "Quit" => false,
             // A rather hacky way of having a multi-line case value in a switch expression
-            < 9 and >= 0 => true,
+            var msg when selections.Any(s => s.Item1 == msg) => true,
             _ => throw new InvalidOperationException("Invalid Selection")
         };
         
@@ -237,10 +236,11 @@ internal static class Program {
             Console.WriteLine("Usage: ITS291 <users.json file>");
             return;
         }
+        var path = args[0];
         Console.OutputEncoding = System.Text.Encoding.UTF8;
-        LoadUsers(args[0]);
+        LoadUsers(path);
         var user = Logon();
         while (DoMenu(user)) {}
-        SaveUsers(args[0]);
+        SaveUsers(path);
     }
 }
