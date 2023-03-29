@@ -232,7 +232,7 @@ internal static class Program {
 
     public static void Main(string[] args) {
         if (args.Length != 1) {
-            Console.WriteLine("Usage: ITS291 <users.json file>");
+            Console.WriteLine("Usage: dotnet run -- <users.json file>");
             return;
         }
         var path = args[0];
