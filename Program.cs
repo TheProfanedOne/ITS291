@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ITS291;
 
 /*
@@ -18,8 +20,10 @@ internal static class Program {
                 Converters = { new User.UserJsonConverter() }
             });
             
+            if (jsonList is null) throw new JsonException();
+            
             users.Clear();
-            foreach (var user in jsonList ?? throw new JsonException())
+            foreach (var user in jsonList)
                 users.Add(user.Username, user);
 #nullable disable
         } catch (JsonException) {
@@ -29,15 +33,17 @@ internal static class Program {
     }
     
     // Attempts to write users to file
-    private static void SaveUsers(string path) {
+    private static int SaveUsers(string path) {
         using var fStream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write);
         try {
             JsonSerializer.Serialize(fStream, users.Values.ToList(), new JsonSerializerOptions {
                 WriteIndented = true,
                 Converters = { new User.UserJsonConverter() }
             });
+            return 0;
         } catch (JsonException) {
             AnsiConsole.MarkupLine("[red]Error saving users[/]");
+            return 1;
         }
     }
 
@@ -57,7 +63,8 @@ internal static class Program {
     }
     
     // Creates and displays a table of all users' information
-    private static void ListUsers() {
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private static bool ListUsers(User unused) {
         var table = new Table().AddColumns(
             new TableColumn("[bold yellow]id[/]"),
             new TableColumn("[bold green]name[/]"),
@@ -73,25 +80,30 @@ internal static class Program {
         );
         
         AnsiConsole.Write(table);
+        return true;
     }
     
+    // Password validation function
+    private static readonly Func<string, ValidationResult> passValidator = p => p switch {
+        _ when string.IsNullOrWhiteSpace(p) => ValidationResult.Error("[red]Password cannot be an empty string[/]"),
+        _ when p.Length < 8                 => ValidationResult.Error("[red]Password must be at least 8 characters[/]"),
+        _ when p.Any(char.IsWhiteSpace)     => ValidationResult.Error("[red]Password cannot contain whitespace[/]"),
+        _ when !p.Any(char.IsUpper)         => ValidationResult.Error("[red]Password must contain at least one uppercase letter[/]"),
+        _ when !p.Any(char.IsLower)         => ValidationResult.Error("[red]Password must contain at least one lowercase letter[/]"),
+        _ when p.All(char.IsLetter)         => ValidationResult.Error("[red]Password must contain at least one non-letter character[/]"),
+        _                                   => ValidationResult.Success()
+    };
+    
     // Adds a user to the dictionary
-    private static void AddUser() {
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private static bool AddUser(User unused) {
         var name = new TextPrompt<string>("Enter [green]username[/]:")
             .Validate(s => !users.ContainsKey(s), "[red]username already exists[/]")
             .Show(AnsiConsole.Console);
 
         var pass = new TextPrompt<string>("Enter [cyan1]password[/]:")
             .Secret().PromptStyle("mediumorchid1_1")
-            .Validate(p =>
-                string.IsNullOrWhiteSpace(p) ? ValidationResult.Error("[red]Password cannot be empty[/]") :
-                p.Length < 8                 ? ValidationResult.Error("[red]Password must be at least 8 characters[/]") :
-                p.Any(char.IsWhiteSpace)     ? ValidationResult.Error("[red]Password cannot contain whitespace[/]") :
-                !p.Any(char.IsUpper)         ? ValidationResult.Error("[red]Password must contain at least one uppercase letter[/]") :
-                !p.Any(char.IsLower)         ? ValidationResult.Error("[red]Password must contain at least one lowercase letter[/]") :
-                p.All(char.IsLetter)         ? ValidationResult.Error("[red]Password must contain at least one non-letter character[/]")
-                                             : ValidationResult.Success()
-            )
+            .Validate(passValidator)
             .Show(AnsiConsole.Console);
             
         var bal = new TextPrompt<decimal>("Enter an initial [blue]balance[/] [dim](Must be positive)[/]:")
@@ -99,29 +111,32 @@ internal static class Program {
             .Show(AnsiConsole.Console);
         
         users.Add(name, new(name, pass, bal));
+        return true;
     }
     
     // Removes a user from the dictionary
-    private static void RemoveUser() {
-        var keys = users.Keys.ToList();
-        keys.Insert(0, "<cancel>");
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private static bool RemoveUser(User unused) {
+        var keys = new LinkedList<string>(users.Keys);
+        keys.AddFirst("<cancel>");
         
         var name = new SelectionPrompt<string>()
             .Title("Select [green]user[/] to remove:")
             .AddChoices(keys)
             .Show(AnsiConsole.Console);
         
-        if (name == "<cancel>") return;
+        if (name == "<cancel>") return true;
         if (name == "admin") {
             AnsiConsole.MarkupLine("[red]Cannot remove admin user[/]");
-            return;
+            return true;
         }
         
         users.Remove(name);
+        return true;
     }
     
     // Creates and displays a table of the logged in user's information
-    private static void ShowUserDetails(User user) {
+    private static bool ShowUserDetails(User user) {
         AnsiConsole.Write(new Table()
             .AddColumns(
                 new TableColumn("[bold mediumorchid1_1]Property[/]"),
@@ -131,10 +146,12 @@ internal static class Program {
             .AddRow("[mediumorchid1_1]name[/]", $"[green]{user.Username}[/]")
             .AddRow("[mediumorchid1_1]item count[/]", $"[green]{user.Items.Count}[/]")
             .AddRow(new Markup("[mediumorchid1_1]balance[/]"), user.AccountBalanceMarkup));
+        
+        return true;
     }
     
     // Prompts the user for an amount to add to the logged in user's balance
-    private static void IncBalance(User user) {
+    private static bool IncBalance(User user) {
         var amount = new TextPrompt<decimal>("How much do you want to [green]add[/]?")
             .Validate(a => a >= 0, "[red]Amount must be positive[/]")
             .Show(AnsiConsole.Console);
@@ -142,10 +159,12 @@ internal static class Program {
         AnsiConsole.Console.WriteLine($"Adding [{User.BalanceColor(amount)}]{amount:C}[/] to ", user.AccountBalanceMarkup);
         user.IncrementBalance(amount);
         AnsiConsole.Console.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
+        
+        return true;
     }
     
     // Prompts the user for an amount to remove from the logged in user's balance
-    private static void DecBalance(User user) {
+    private static bool DecBalance(User user) {
         var amount = new TextPrompt<decimal>("How much do you want to [red]remove[/]?")
             .Validate(a => a >= 0, "[red]Amount must be positive[/]")
             .Show(AnsiConsole.Console);
@@ -154,15 +173,14 @@ internal static class Program {
             var oldMarkup = user.AccountBalanceMarkup;
             user.DecrementBalance(amount);
             AnsiConsole.Console.WriteLine($"Removing [{User.BalanceColor(amount * -1)}]{amount:C}[/] from ", oldMarkup);
-        } catch (BalanceOverdrawException e) {
-            AnsiConsole.MarkupLine(e.Message);
-        } finally {
-            AnsiConsole.Console.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
-        }
+        } catch (BalanceOverdrawException ex) { AnsiConsole.MarkupLine(ex.Message); }
+        
+        AnsiConsole.Console.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
+        return true;
     }
     
     // Lists all of the user's items
-    private static void ListItems(User user) {
+    private static bool ListItems(User user) {
         var table = new Table().AddColumns(
             new TableColumn("[bold green]Name[/]"),
             new TableColumn("[bold blue]Price[/]")
@@ -173,10 +191,11 @@ internal static class Program {
         );
         
         AnsiConsole.Write(table);
+        return true;
     }
     
     // Adds an item to the user's list of items
-    private static void AddItem(User user) {
+    private static bool AddItem(User user) {
         var name = new TextPrompt<string>("What is the [green]name[/] of the item you wish to add?")
             .Validate(string.IsNullOrWhiteSpace, "[red]Name cannot be empty[/]")
             .Show(AnsiConsole.Console);
@@ -186,60 +205,59 @@ internal static class Program {
             .Show(AnsiConsole.Console);
         
         user.AddItem(name, price);
+        return true;
     }
     
     // Removes an item from the users's list of items
-    private static void RemoveItem(User user) {
+    private static bool RemoveItem(User user) {
         var item = new SelectionPrompt<Item>()
             .Title("What is the [green]name[/] of the item you wish to remove?")
             .AddChoices(user.Items).UseConverter(item => item.Name)
             .Show(AnsiConsole.Console);
         
         user.RemoveItem(item);
+        return true;
     }
     
-    // Array of tuples containing the menu option text and the function to call when it is selected
-    private static readonly (string, Action<User>)[] selections = {
-        ("Increment Balance", IncBalance),
-        ("Decrement Balance", DecBalance),
-        ("List Users", _ => ListUsers()),
-        ("Add User", _ => AddUser()),
-        ("Remove User", _ => RemoveUser()),
-        ("Show User Details", ShowUserDetails),
-        ("List Items", ListItems),
-        ("Add Item", AddItem),
-        ("Remove Item", RemoveItem),
-        ("Quit", _ => {})
+    // I don't even know how to describe this monstrosity
+    private static readonly ((string, Func<User, bool>), IEnumerable<(string, Func<User, bool>)>)[] selGroups = {
+        (("Account", _ => true), new (string, Func<User, bool>)[] {
+            ("Increment Balance", IncBalance),
+            ("Decrement Balance", DecBalance)
+        }),
+        (("Users", _ => true), new (string, Func<User, bool>)[] {
+            ("List Users", ListUsers),
+            ("Add User", AddUser),
+            ("Remove User", RemoveUser),
+            ("Show User Details", ShowUserDetails)
+        }),
+        (("Items", _ => true), new (string, Func<User, bool>)[] {
+            ("List Items", ListItems),
+            ("Add Item", AddItem),
+            ("Remove Item", RemoveItem)
+        })
     };
-    
+    private static readonly (string, Func<User, bool>) SENTINEL = ("Quit", _ => false);
+
     // Displays a menu of available options and continuously prompts the user for input until they quit
-    private static bool DoMenu(User user) {
-        var sel = new SelectionPrompt<(string, Action<User>)>()
+    private static void DoMenu(User user) {
+        var menu = new SelectionPrompt<(string, Func<User, bool>)>()
             .Title("[bold]What do you want to do?[/]")
-            .AddChoices(selections).UseConverter(s => s.Item1)
-            .Show(AnsiConsole.Console);
+            .AddGroups(selGroups).AddChoices(SENTINEL)
+            .UseConverter(s => s.Item1);
         
-        var retVal = sel.Item1 switch {
-            "Quit" => false,
-            // A rather hacky way of having a multi-line case value in a switch expression
-            var msg when selections.Any(s => s.Item1 == msg) => true,
-            _ => throw new InvalidOperationException("Invalid Selection")
-        };
-        
-        sel.Item2(user);
-        return retVal;
+        while (menu.Show(AnsiConsole.Console).Item2(user)) {}
     }
 
-    public static void Main(string[] args) {
+    public static int Main(string[] args) {
         if (args.Length != 1) {
             Console.WriteLine("Usage: dotnet run -- <users.json file>");
-            return;
+            return 1;
         }
         var path = args[0];
-        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
         LoadUsers(path);
-        var user = Logon();
-        while (DoMenu(user)) {}
-        SaveUsers(path);
+        DoMenu(Logon());
+        return SaveUsers(path);
     }
 }

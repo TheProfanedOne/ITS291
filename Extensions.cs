@@ -2,7 +2,17 @@
 
 namespace ITS291;
 
-public static class AnsiConsoleExtensions {
+public static class Extensions {
+    // Extension method that adds a collection of selection groups to a SelectionPrompt
+    public static SelectionPrompt<T> AddGroups<T>(this SelectionPrompt<T> prompt, IEnumerable<(T, IEnumerable<T>)> groups) {
+        foreach (var (groupName, group) in groups) prompt.AddChoiceGroup(groupName, group);
+        return prompt;
+    }
+
+    public static T[] ArrConcat<T>(this T[] arr, T[] otherArr) {
+        return arr.Concat(otherArr).ToArray();
+    }
+
     public static void Write(this IAnsiConsole console, params FormattableString[] sections) {
         foreach (var section in sections) {
             console.Write(Markup.FromInterpolated(section));

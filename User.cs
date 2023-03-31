@@ -8,19 +8,20 @@ public sealed class User {
     public User(string name, string pass, decimal bal = 0.00M) {
         UserId = Guid.NewGuid();
         Username = name;
-        _salt = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        _salt = Guid.NewGuid().ToByteArray();
         PasswordHash = ComputePasswordHash(_salt, pass);
         _bal = bal;
         _items = new();
     }
-    
+
+#nullable enable
     // Secondary Constructor (for reading from JSON)
-    public User(ref Utf8JsonReader reader) {
+    private User(ref Utf8JsonReader reader) {
         if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException("Expected StartObject");
         
         while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
             if (reader.TokenType == JsonTokenType.PropertyName) {
-                var pName = reader.GetString();
+                var pName = reader.GetString() ?? throw new JsonException("Expected PropertyName");
                 reader.Read();
                 switch (pName) {
                     case "userid":
@@ -30,13 +31,13 @@ public sealed class User {
                         Username = reader.GetString() ?? throw new JsonException("Username is null");
                         break;
                     case "password_hash":
-                        PasswordHash = reader.GetString() ?? throw new JsonException("PasswordHash is null");
+                        PasswordHash = reader.GetBytesFromBase64();
                         break;
                     case "account_balance":
                         _bal = reader.GetDecimal();
                         break;
                     case "salt":
-                        _salt = reader.GetString() ?? throw new JsonException("salt is null");
+                        _salt = reader.GetBytesFromBase64();
                         break;
                     case "items":
                         _items = JsonSerializer.Deserialize<List<Item>>(ref reader) ?? new();
@@ -45,6 +46,7 @@ public sealed class User {
             }
         }
     }
+#nullable disable
 
     // Adds an item to the user's list of items
     public void AddItem(string name, decimal price) {
@@ -70,8 +72,8 @@ public sealed class User {
     }
     
     // Checks if the given password matches the user's password
-    public bool CheckPassword(string password) {
-        return ComputePasswordHash(_salt, password) == PasswordHash;
+    public bool CheckPassword(string pass) {
+        return PasswordHash.SequenceEqual(ComputePasswordHash(_salt, pass));
     }
     
     // Determines the color to use for a given balance
@@ -84,25 +86,21 @@ public sealed class User {
     }
     
     // Computes the password hash for a given password
-    private static string ComputePasswordHash(string salt, string pass) {
-        string SHA256OfString(string s) {
-            var bytes = System.Text.Encoding.UTF8.GetBytes(s);
-            var hash = SHA256.HashData(bytes);
-            return Convert.ToBase64String(hash);
-        }
-        
-        return SHA256OfString(salt + SHA256OfString(pass + SHA256OfString(salt)));
+    private static byte[] ComputePasswordHash(byte[] salt, string pass) {
+        Func<byte[], byte[]> GetHash = SHA256.HashData;
+        var bytes = Encoding.UTF8.GetBytes(pass);
+        return GetHash(salt.ArrConcat(GetHash(bytes.ArrConcat(GetHash(salt)))));
     }
 
     public Guid                UserId               { get; }
     public string              Username             { get; }
-    public string              PasswordHash         { private get; set; }
+    public byte[]              PasswordHash         { private get; set; }
     // public decimal             AccountBalance       => _bal;
     public Markup              AccountBalanceMarkup => Markup.FromInterpolated($"[{BalanceColor(_bal)}]{_bal:C}[/]");
     public IReadOnlyList<Item> Items                => _items;
 
     private decimal             _bal;
-    private readonly string     _salt;
+    private readonly byte[]     _salt;
     private readonly List<Item> _items;
     
     public class UserJsonConverter : JsonConverter<User> {
@@ -115,9 +113,9 @@ public sealed class User {
         public override void Write(Utf8JsonWriter writer, User value, JsonSerializerOptions options) {
             writer.WriteStartObject();
             writer.WriteString("userid", value.UserId);
-            writer.WriteString("salt", value._salt);
+            writer.WriteBase64String("salt", value._salt);
             writer.WriteString("username", value.Username);
-            writer.WriteString("password_hash", value.PasswordHash);
+            writer.WriteBase64String("password_hash", value.PasswordHash);
             writer.WriteNumber("account_balance", value._bal);
             writer.WritePropertyName("items");
             JsonSerializer.Serialize(writer, value._items);

@@ -11,6 +11,7 @@
         <PackageReference Include="Spectre.Console" Version="0.46.0" />
         <Using Include="Spectre.Console" />
         <Using Include="ITS291" />
+        <Using Include="System.Text" />
         <Using Include="System.Text.Json" />
     </ItemGroup>
 
