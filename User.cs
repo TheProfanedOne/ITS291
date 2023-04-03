@@ -20,29 +20,31 @@ public sealed class User {
         if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException("Expected StartObject");
         
         while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
-            if (reader.TokenType == JsonTokenType.PropertyName) {
-                var pName = reader.GetString() ?? throw new JsonException("Expected PropertyName");
-                reader.Read();
-                switch (pName) {
-                    case "userid":
-                        UserId = reader.GetGuid();
-                        break;
-                    case "username":
-                        Username = reader.GetString() ?? throw new JsonException("Username is null");
-                        break;
-                    case "password_hash":
-                        PasswordHash = reader.GetBytesFromBase64();
-                        break;
-                    case "account_balance":
-                        _bal = reader.GetDecimal();
-                        break;
-                    case "salt":
-                        _salt = reader.GetBytesFromBase64();
-                        break;
-                    case "items":
-                        _items = JsonSerializer.Deserialize<List<Item>>(ref reader) ?? new();
-                        break;
-                }
+            if (reader.TokenType == JsonTokenType.PropertyName) throw new JsonException("Expected PropertyName");
+            
+            var pName = reader.GetString();
+            reader.Read();
+            switch (pName) {
+                case "userid":
+                    UserId = reader.GetGuid();
+                    break;
+                case "username":
+                    Username = reader.GetString() ?? throw new JsonException("Username is null");
+                    break;
+                case "password_hash":
+                    PasswordHash = reader.GetBytesFromBase64();
+                    break;
+                case "account_balance":
+                    _bal = reader.GetDecimal();
+                    break;
+                case "salt":
+                    _salt = reader.GetBytesFromBase64();
+                    break;
+                case "items":
+                    _items = JsonSerializer.Deserialize<List<Item>>(ref reader) ?? new();
+                    break;
+                default:
+                    throw new JsonException($"Unexpected property name: {pName}");
             }
         }
     }
@@ -96,7 +98,7 @@ public sealed class User {
     public string              Username             { get; }
     public byte[]              PasswordHash         { private get; set; }
     // public decimal             AccountBalance       => _bal;
-    public Markup              AccountBalanceMarkup => Markup.FromInterpolated($"[{BalanceColor(_bal)}]{_bal:C}[/]");
+    public Markup              AccountBalanceMarkup => new($"[{BalanceColor(_bal)}]{_bal:C}[/]");
     public IReadOnlyList<Item> Items                => _items;
 
     private decimal             _bal;

@@ -2,6 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ITS291;
 
+using SelTuple = ValueTuple<string, Func<User, bool>>;
+
 /*
  * File Name: Program.cs
  * Author: Matthew Mousseau
@@ -33,17 +35,16 @@ internal static class Program {
     }
     
     // Attempts to write users to file
-    private static int SaveUsers(string path) {
+    private static void SaveUsers(string path) {
         using var fStream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write);
         try {
             JsonSerializer.Serialize(fStream, users.Values.ToList(), new JsonSerializerOptions {
                 WriteIndented = true,
                 Converters = { new User.UserJsonConverter() }
             });
-            return 0;
-        } catch (JsonException) {
-            AnsiConsole.MarkupLine("[red]Error saving users[/]");
-            return 1;
+        } catch (JsonException ex) {
+            AnsiConsole.MarkupLine($"[red]Error saving users ({ex.LineNumber}|{ex.BytePositionInLine}): {ex.Message}[/]");
+            Environment.Exit(1);
         }
     }
 
@@ -65,21 +66,20 @@ internal static class Program {
     // Creates and displays a table of all users' information
     [SuppressMessage("ReSharper", "UnusedParameter.Local")]
     private static bool ListUsers(User unused) {
-        var table = new Table().AddColumns(
-            new TableColumn("[bold yellow]id[/]"),
-            new TableColumn("[bold green]name[/]"),
-            new TableColumn("[bold mediumorchid1_1]item count[/]"),
-            new TableColumn("[bold blue]balance[/]")
-        );
+        AnsiConsole.Write(new Table()
+            .AddColumns(
+                new TableColumn("[bold yellow]id[/]"),
+                new TableColumn("[bold green]name[/]"),
+                new TableColumn("[bold mediumorchid1_1]item count[/]"),
+                new TableColumn("[bold blue]balance[/]")
+            )
+            .AddRows(users.Values, user => new[] {
+                new Markup($"[yellow]{user.UserId}[/]"),
+                new Markup($"[green]{user.Username}[/]"),
+                new Markup($"[mediumorchid1_1]{user.Items.Count}[/]"),
+                user.AccountBalanceMarkup
+            }));
         
-        foreach (var user in users.Values.ToList()) table.AddRow(
-            new Markup($"[yellow]{user.UserId}[/]"),
-            new Markup($"[green]{user.Username}[/]"),
-            new Markup($"[mediumorchid1_1]{user.Items.Count}[/]"),
-            user.AccountBalanceMarkup
-        );
-        
-        AnsiConsole.Write(table);
         return true;
     }
     
@@ -181,16 +181,16 @@ internal static class Program {
     
     // Lists all of the user's items
     private static bool ListItems(User user) {
-        var table = new Table().AddColumns(
-            new TableColumn("[bold green]Name[/]"),
-            new TableColumn("[bold blue]Price[/]")
-        );
-        
-        foreach (var (name, price) in user.Items) table.AddRow(
-            $"[green]{name}[/]", $"[blue]{price:C}[/]"
-        );
-        
-        AnsiConsole.Write(table);
+        AnsiConsole.Write(new Table()
+            .AddColumns(
+                new TableColumn("[bold green]Name[/]"),
+                new TableColumn("[bold blue]Price[/]")
+            )
+            .AddRows(user.Items, item => new[] {
+                new Markup($"[green]{item.Name}[/]"),
+                new Markup($"[blue]{item.Price:C}[/]")
+            }));
+
         return true;
     }
     
@@ -220,28 +220,28 @@ internal static class Program {
     }
     
     // I don't even know how to describe this monstrosity
-    private static readonly ((string, Func<User, bool>), IEnumerable<(string, Func<User, bool>)>)[] selGroups = {
-        (("Account", _ => true), new (string, Func<User, bool>)[] {
+    private static readonly (SelTuple, IEnumerable<SelTuple>)[] selGroups = {
+        (("Account", _ => true), new SelTuple[] {
             ("Increment Balance", IncBalance),
             ("Decrement Balance", DecBalance)
         }),
-        (("Users", _ => true), new (string, Func<User, bool>)[] {
+        (("Users", _ => true), new SelTuple[] {
             ("List Users", ListUsers),
             ("Add User", AddUser),
             ("Remove User", RemoveUser),
             ("Show User Details", ShowUserDetails)
         }),
-        (("Items", _ => true), new (string, Func<User, bool>)[] {
+        (("Items", _ => true), new SelTuple[] {
             ("List Items", ListItems),
             ("Add Item", AddItem),
             ("Remove Item", RemoveItem)
         })
     };
-    private static readonly (string, Func<User, bool>) SENTINEL = ("Quit", _ => false);
+    private static readonly SelTuple SENTINEL = ("Quit", _ => false);
 
     // Displays a menu of available options and continuously prompts the user for input until they quit
     private static void DoMenu(User user) {
-        var menu = new SelectionPrompt<(string, Func<User, bool>)>()
+        var menu = new SelectionPrompt<SelTuple>()
             .Title("[bold]What do you want to do?[/]")
             .AddGroups(selGroups).AddChoices(SENTINEL)
             .UseConverter(s => s.Item1);
@@ -249,15 +249,15 @@ internal static class Program {
         while (menu.Show(AnsiConsole.Console).Item2(user)) {}
     }
 
-    public static int Main(string[] args) {
+    public static void Main(string[] args) {
         if (args.Length != 1) {
             Console.WriteLine("Usage: dotnet run -- <users.json file>");
-            return 1;
+            Environment.Exit(1);
         }
         var path = args[0];
         Console.OutputEncoding = Encoding.UTF8;
         LoadUsers(path);
         DoMenu(Logon());
-        return SaveUsers(path);
+        SaveUsers(path);
     }
 }
