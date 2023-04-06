@@ -1,7 +1,18 @@
+using System.Data;
+using Microsoft.Data.Sqlite;
+
 namespace ITS291;
 
-using System.Text.Json.Serialization;
 using System.Security.Cryptography;
+
+public record Item(string Name, decimal Price);
+
+public class BalanceOverdrawException : Exception {
+    public BalanceOverdrawException() : base(
+        "Amount must be less than or equal to the account balance when [orangered1]preventOverdraw[/] is set."
+    ) {}
+    public BalanceOverdrawException(string msg) : base(msg) {}
+}
 
 public sealed class User {
     // Primary Constructor
@@ -14,52 +25,43 @@ public sealed class User {
         _items = new();
     }
 
-#nullable enable
-    // Secondary Constructor (for reading from JSON)
-    private User(ref Utf8JsonReader reader) {
-        if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException("Expected StartObject");
+    // Secondary Constructor (for reading from database)
+    public User(IDataReader reader) {
+        UserId = reader.GetGuid(reader.GetOrdinal("userid"));
+        Username = reader.GetString(reader.GetOrdinal("username"));
+        _salt = (byte[]) reader.GetValue(reader.GetOrdinal("salt"));
+        PasswordHash = (byte[]) reader.GetValue(reader.GetOrdinal("pass"));
+        _bal = reader.GetDecimal(reader.GetOrdinal("balance"));
         
-        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject) {
-            if (reader.TokenType == JsonTokenType.PropertyName) throw new JsonException("Expected PropertyName");
-            
-            var pName = reader.GetString();
+        _items = new();
+        var nameOrd = reader.GetOrdinal("name");
+        var priceOrd = reader.GetOrdinal("price");
+        while (!reader.IsDBNull(nameOrd)) {
+            _items.Add(new(
+                reader.GetString(nameOrd),
+                reader.GetDecimal(priceOrd)
+            ));
             reader.Read();
-            switch (pName) {
-                case "userid":
-                    UserId = reader.GetGuid();
-                    break;
-                case "username":
-                    Username = reader.GetString() ?? throw new JsonException("Username is null");
-                    break;
-                case "password_hash":
-                    PasswordHash = reader.GetBytesFromBase64();
-                    break;
-                case "account_balance":
-                    _bal = reader.GetDecimal();
-                    break;
-                case "salt":
-                    _salt = reader.GetBytesFromBase64();
-                    break;
-                case "items":
-                    _items = JsonSerializer.Deserialize<List<Item>>(ref reader) ?? new();
-                    break;
-                default:
-                    throw new JsonException($"Unexpected property name: {pName}");
-            }
         }
     }
-#nullable disable
+    
+    // Maps the user's data to a command's parameters
+    public void MapDataToCommand(SqliteCommand cmd) {
+        cmd.Parameters["@userid"].Value = UserId.ToString();
+        cmd.Parameters["@username"].Value = Username;
+        cmd.Parameters["@salt"].Value = _salt;
+        cmd.Parameters["@pass"].Value = PasswordHash;
+        cmd.Parameters["@bal"].Value = _bal;
+    }
 
     // Adds an item to the user's list of items
-    public void AddItem(string name, decimal price) {
-        _items.Add(new(name, price));
-    }
-    
+    public void AddItem(string name, decimal price) => _items.Add(new(name, price));
+
     // Removes an item from the user's list of items
     public void RemoveItem(Item item) {
         _items.Remove(item);
     }
-    
+
     // Increments the user's account balance
     public void IncrementBalance(decimal amount) {
         if (amount < 0) throw new ArgumentException("Amount must be positive");
@@ -89,7 +91,7 @@ public sealed class User {
     
     // Computes the password hash for a given password
     private static byte[] ComputePasswordHash(byte[] salt, string pass) {
-        Func<byte[], byte[]> GetHash = SHA256.HashData;
+        byte[] GetHash(byte[] b) => SHA256.HashData(b);
         var bytes = Encoding.UTF8.GetBytes(pass);
         return GetHash(salt.ArrConcat(GetHash(bytes.ArrConcat(GetHash(salt)))));
     }
@@ -104,24 +106,4 @@ public sealed class User {
     private decimal             _bal;
     private readonly byte[]     _salt;
     private readonly List<Item> _items;
-    
-    public class UserJsonConverter : JsonConverter<User> {
-#nullable enable
-        public override User? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-            return new User(ref reader);
-        }
-#nullable disable
-        
-        public override void Write(Utf8JsonWriter writer, User value, JsonSerializerOptions options) {
-            writer.WriteStartObject();
-            writer.WriteString("userid", value.UserId);
-            writer.WriteBase64String("salt", value._salt);
-            writer.WriteString("username", value.Username);
-            writer.WriteBase64String("password_hash", value.PasswordHash);
-            writer.WriteNumber("account_balance", value._bal);
-            writer.WritePropertyName("items");
-            JsonSerializer.Serialize(writer, value._items);
-            writer.WriteEndObject();
-        }
-    }
 }
