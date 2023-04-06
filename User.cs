@@ -45,7 +45,7 @@ public sealed class User {
         }
     }
     
-    // Maps the user's data to a command's parameters
+    // Maps the user's data to a sqlite command's parameters
     public void MapDataToCommand(SqliteCommand cmd) {
         cmd.Parameters["@userid"].Value = UserId.ToString();
         cmd.Parameters["@username"].Value = Username;
