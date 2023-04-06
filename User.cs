@@ -1,21 +1,21 @@
-using System.Data;
-using Microsoft.Data.Sqlite;
-
 namespace ITS291;
 
+using System.Data;
+using Microsoft.Data.Sqlite;
 using System.Security.Cryptography;
 
+/// A record that describes an item that a user may have
 public record Item(string Name, decimal Price);
 
+/// An exception class for when a user tries to withdraw more money than they have
 public class BalanceOverdrawException : Exception {
-    public BalanceOverdrawException() : base(
-        "Amount must be less than or equal to the account balance when [orangered1]preventOverdraw[/] is set."
-    ) {}
+    public BalanceOverdrawException() : base("Insufficient funds.") {}
     public BalanceOverdrawException(string msg) : base(msg) {}
 }
 
+/// A class that describes a user
 public sealed class User {
-    // Primary Constructor
+    /// Primary Constructor
     public User(string name, string pass, decimal bal = 0.00M) {
         UserId = Guid.NewGuid();
         Username = name;
@@ -25,8 +25,8 @@ public sealed class User {
         _items = new();
     }
 
-    // Secondary Constructor (for reading from database)
-    public User(IDataReader reader) {
+    /// Secondary Constructor (for reading from database)
+    private User(IDataReader reader) {
         UserId = reader.GetGuid(reader.GetOrdinal("userid"));
         Username = reader.GetString(reader.GetOrdinal("username"));
         _salt = (byte[]) reader.GetValue(reader.GetOrdinal("salt"));
@@ -45,42 +45,124 @@ public sealed class User {
         }
     }
     
-    // Maps the user's data to a sqlite command's parameters
-    public void MapDataToCommand(SqliteCommand cmd) {
-        cmd.Parameters["@userid"].Value = UserId.ToString();
-        cmd.Parameters["@username"].Value = Username;
-        cmd.Parameters["@salt"].Value = _salt;
-        cmd.Parameters["@pass"].Value = PasswordHash;
-        cmd.Parameters["@bal"].Value = _bal;
+    /// Populates the "users" dictionary with the users in the database (if the database file already exists)
+    public static void PopulateUsers(SqliteConnection conn, Dictionary<string, User> users) {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = /* language=SQLite */ """
+            select u.*, i.name, i.price
+            from users u left join (
+                select * from items union
+                select userid, null, null from users
+            ) i on u.userid = i.userid
+            order by u.userid, i.name desc
+        """;
+        
+        using var reader = cmd.ExecuteReader();
+        users.Clear();
+        while (reader.Read()) {
+            User user = new(reader);
+            users.Add(user.Username, user);
+        }
+    }
+    
+    /// Initializes the database tables and populates the "users" dictionary upon database file creation
+    public static void InitDatabaseAndUsers(SqliteConnection conn, Dictionary<string, User> users) {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = /* language=SQLite */ """
+            create table users (
+                userid primary key not null,
+                username unique not null,
+                salt not null,
+                pass not null,
+                balance not null
+            )
+        """;
+        cmd.ExecuteNonQuery();
+        
+        cmd.CommandText = /* language=SQLite */ """
+            create table items (
+                userid not null,
+                name not null,
+                price not null,
+                foreign key (userid) references users (userid)
+            )
+        """;
+        cmd.ExecuteNonQuery();
+    
+        users.Clear();
+        users.Add("admin", new("admin", "admin"));
+    }
+    
+    /// Saves users to the database
+    public static void SaveUsersToDatabase(SqliteConnection conn, Dictionary<string, User> users) {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = /* language=SQLite */ """
+            delete from items;
+            delete from users;
+        """;
+        cmd.ExecuteNonQuery();
+
+        cmd.CommandText = /* language=SQLite */ """
+            insert into users values (@userid, @username, @salt, @pass, @bal)
+        """;
+        cmd.Parameters.Add("@userid", SqliteType.Blob);
+        cmd.Parameters.Add("@username", SqliteType.Text);
+        cmd.Parameters.Add("@salt", SqliteType.Blob);
+        cmd.Parameters.Add("@pass", SqliteType.Blob);
+        cmd.Parameters.Add("@bal", SqliteType.Real);
+        
+        foreach (var user in users.Values) {
+            cmd.Parameters["@userid"].Value = user.UserId;
+            cmd.Parameters["@username"].Value = user.Username;
+            cmd.Parameters["@salt"].Value = user._salt;
+            cmd.Parameters["@pass"].Value = user.PasswordHash;
+            cmd.Parameters["@bal"].Value = user._bal;
+            cmd.ExecuteNonQuery();
+        }
+        
+        cmd.CommandText = /* language=SQLite */ """
+            insert into items values (@userid, @name, @price)
+        """;
+        cmd.Parameters.Add("@name", SqliteType.Text);
+        cmd.Parameters.Add("@price", SqliteType.Real);
+        
+        foreach (var user in users.Values) {
+            cmd.Parameters["@userid"].Value = user.UserId;
+            foreach (var item in user._items) {
+                cmd.Parameters["@name"].Value = item.Name;
+                cmd.Parameters["@price"].Value = item.Price;
+                cmd.ExecuteNonQuery();
+            }
+        }
     }
 
-    // Adds an item to the user's list of items
+    /// Adds an item to the user's list of items
     public void AddItem(string name, decimal price) => _items.Add(new(name, price));
 
-    // Removes an item from the user's list of items
+    /// Removes an item from the user's list of items
     public void RemoveItem(Item item) {
         _items.Remove(item);
     }
 
-    // Increments the user's account balance
+    /// Increments the user's account balance
     public void IncrementBalance(decimal amount) {
         if (amount < 0) throw new ArgumentException("Amount must be positive");
         _bal += amount;
     }
     
-    // Decrements the user's account balance
+    /// Decrements the user's account balance
     public void DecrementBalance(decimal amount, bool preventOverdraw = true) {
         if (amount < 0) throw new ArgumentException("Amount must be positive");
         if (preventOverdraw && amount > _bal) throw new BalanceOverdrawException();
         _bal -= amount;
     }
     
-    // Checks if the given password matches the user's password
+    /// Checks if the given password matches the user's password
     public bool CheckPassword(string pass) {
         return PasswordHash.SequenceEqual(ComputePasswordHash(_salt, pass));
     }
     
-    // Determines the color to use for a given balance
+    /// Determines the color to use for a given balance
     public static string BalanceColor(decimal balance) {
         return balance switch {
             > 0 => "green",
@@ -89,7 +171,7 @@ public sealed class User {
         };
     }
     
-    // Computes the password hash for a given password
+    /// Computes the password hash for a given password
     private static byte[] ComputePasswordHash(byte[] salt, string pass) {
         byte[] GetHash(byte[] b) => SHA256.HashData(b);
         var bytes = Encoding.UTF8.GetBytes(pass);
