@@ -8,6 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.Sqlite;
 using SelTuple = System.ValueTuple<string, System.Func<ITS291.User, bool>>;
 
+// Abbreviation (kind of) for AnsiConsole.Console
+var ansi = AnsiConsole.Console;
+
 // Dictionary of users
 var users = new Dictionary<string, User>();
 
@@ -23,13 +26,13 @@ void LoadUsers(string path) {
         conn.Open();
         
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
+        cmd.CommandText = /* language=SQLite */ """
             select u.*, i.name, i.price
             from users u left join (
                 select * from items union
                 select userid, null, null from users
             ) i on u.userid = i.userid
-            order by u.userid, name desc
+            order by u.userid, i.name desc
         """;
         
         using var reader = cmd.ExecuteReader();
@@ -38,15 +41,13 @@ void LoadUsers(string path) {
             User user = new(reader);
             users.Add(user.Username, user);
         }
-        
-        conn.Close();
     } catch (SqliteException) {
         connStrB.Mode = SqliteOpenMode.ReadWriteCreate;
         using var conn = new SqliteConnection(connStrB.ConnectionString);
         conn.Open();
         
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
+        cmd.CommandText = /* language=SQLite */ """
             create table users (
                 userid primary key not null,
                 username unique not null,
@@ -57,7 +58,7 @@ void LoadUsers(string path) {
         """;
         cmd.ExecuteNonQuery();
         
-        cmd.CommandText = """
+        cmd.CommandText = /* language=SQLite */ """
             create table items (
                 userid not null,
                 name not null,
@@ -66,8 +67,6 @@ void LoadUsers(string path) {
             )
         """;
         cmd.ExecuteNonQuery();
-        
-        conn.Close();
         
         users.Clear();
         users.Add("admin", new("admin", "admin"));
@@ -119,7 +118,7 @@ void SaveUsers(string path) {
         
         conn.Close();
     } catch (SqliteException ex) {
-        AnsiConsole.MarkupLine($"[red]Error saving users: {ex.Message}[/]");
+        ansi.MarkupLine($"[red]Error saving users: {ex.Message}[/]");
     }
 }
 
@@ -128,12 +127,12 @@ User Logon() {
     var user = new TextPrompt<User>("[bold green]login[/] ([dim]username[/]):")
         .AddChoices(users.Values.ToList()).WithConverter(u => u.Username).HideChoices()
         .InvalidChoiceMessage("[red]unknown login[/]")
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
     
     var _ = new TextPrompt<string>("Enter [cyan1]password[/]?")
         .Secret().PromptStyle("mediumorchid1_1")
         .Validate(user.CheckPassword, "[red]invalid password[/]")
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
     
     return user;
 }
@@ -141,7 +140,7 @@ User Logon() {
 // Creates and displays a table of all users' information
 [SuppressMessage("ReSharper", "UnusedParameter.Local")]
 bool ListUsers(User unused) {
-    AnsiConsole.Write(new Table()
+    ansi.Write(new Table()
         .AddColumns(
             new TableColumn("[bold yellow]id[/]"),
             new TableColumn("[bold green]name[/]"),
@@ -158,6 +157,7 @@ bool ListUsers(User unused) {
     return true;
 }
 
+// Username validation function
 ValidationResult NameValidator(string n) => n switch {
     _ when string.IsNullOrWhiteSpace(n) => ValidationResult.Error("[red]Username cannot be empty[/]"),
     _ when users.ContainsKey(n)         => ValidationResult.Error("[red]Username already exists[/]"),
@@ -180,16 +180,16 @@ ValidationResult PassValidator(string p) => p switch {
 bool AddUser(User unused) {
     var name = new TextPrompt<string>("Enter [green]username[/]:")
         .Validate(NameValidator)
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
 
     var pass = new TextPrompt<string>("Enter [cyan1]password[/]:")
         .Secret().PromptStyle("mediumorchid1_1")
         .Validate(PassValidator)
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
         
     var bal = new TextPrompt<decimal>("Enter an initial [blue]balance[/] [dim](Must be positive)[/]:")
         .Validate(b => b >= 0, "[red]Balance must be positive[/]")
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
     
     users.Add(name, new(name, pass, bal));
     return true;
@@ -201,10 +201,10 @@ bool RemoveUser(User unused) {
     var name = new SelectionPrompt<string>()
         .Title("Select [green]user[/] to remove:")
         .AddChoices(users.Keys.Prepend("<cancel>"))
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
     
     if (name == "admin") {
-        AnsiConsole.MarkupLine("[red]Cannot remove admin user[/]");
+        ansi.MarkupLine("[red]Cannot remove admin user[/]");
         return true;
     }
     
@@ -214,7 +214,7 @@ bool RemoveUser(User unused) {
 
 // Creates and displays a table of the logged in user's information
 bool ShowUserDetails(User user) {
-    AnsiConsole.Write(new Table()
+    ansi.Write(new Table()
         .AddColumns(
             new TableColumn("[bold mediumorchid1_1]Property[/]"),
             new TableColumn("[bold green]Value[/]")
@@ -231,11 +231,11 @@ bool ShowUserDetails(User user) {
 bool IncBalance(User user) {
     var amount = new TextPrompt<decimal>("How much do you want to [green]add[/]?")
         .Validate(a => a >= 0, "[red]Amount must be positive[/]")
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
 
-    AnsiConsole.Console.WriteLine($"Adding [{User.BalanceColor(amount)}]{amount:C}[/] to ", user.AccountBalanceMarkup);
+    ansi.WriteLine($"Adding [{User.BalanceColor(amount)}]{amount:C}[/] to ", user.AccountBalanceMarkup);
     user.IncrementBalance(amount);
-    AnsiConsole.Console.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
+    ansi.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
     
     return true;
 }
@@ -244,21 +244,21 @@ bool IncBalance(User user) {
 bool DecBalance(User user) {
     var amount = new TextPrompt<decimal>("How much do you want to [red]remove[/]?")
         .Validate(a => a >= 0, "[red]Amount must be positive[/]")
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
     
     try {
         var oldMarkup = user.AccountBalanceMarkup;
         user.DecrementBalance(amount);
-        AnsiConsole.Console.WriteLine($"Removing [{User.BalanceColor(amount * -1)}]{amount:C}[/] from ", oldMarkup);
-    } catch (BalanceOverdrawException ex) { AnsiConsole.MarkupLine(ex.Message); }
+        ansi.WriteLine($"Removing [{User.BalanceColor(amount * -1)}]{amount:C}[/] from ", oldMarkup);
+    } catch (BalanceOverdrawException ex) { ansi.MarkupLine(ex.Message); }
     
-    AnsiConsole.Console.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
+    ansi.WriteLine($"Account Balance now ", user.AccountBalanceMarkup);
     return true;
 }
 
 // Lists all of the user's items
 bool ListItems(User user) {
-    AnsiConsole.Write(new Table()
+    ansi.Write(new Table()
         .AddColumns(
             new TableColumn("[bold green]Name[/]"),
             new TableColumn("[bold blue]Price[/]")
@@ -275,11 +275,11 @@ bool ListItems(User user) {
 bool AddItem(User user) {
     var name = new TextPrompt<string>("What is the [green]name[/] of the item you wish to add?")
         .Validate(n => !string.IsNullOrWhiteSpace(n), "[red]Name cannot be empty[/]")
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
         
     var price = new TextPrompt<decimal>("What is the [blue]price[/] of the item?")
         .Validate(p => p >= 0, "[red]Price must be positive[/]")
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
     
     user.AddItem(name, price);
     return true;
@@ -290,7 +290,7 @@ bool RemoveItem(User user) {
     var item = new SelectionPrompt<Item>()
         .Title("What is the [green]name[/] of the item you wish to remove?")
         .AddChoices(user.Items.Prepend(new("<cancel>", 0))).UseConverter(item => item.Name)
-        .Show(AnsiConsole.Console);
+        .Show(ansi);
     
     user.RemoveItem(item);
     return true;
@@ -323,21 +323,26 @@ void DoMenu(User user) {
         .AddGroups(selGroups).AddChoices(SENTINEL)
         .UseConverter(s => s.Item1);
     
-    while (menu.Show(AnsiConsole.Console).Item2(user)) {}
+    while (menu.Show(ansi).Item2(user)) {}
 }
 
 /* Main */ {
     Console.OutputEncoding = Encoding.UTF8;
-    Console.CancelKeyPress += delegate {
-        Console.WriteLine("Exiting...");
-    };
-    
+
     if (args.Length != 1) {
-        Console.WriteLine("Usage: `dotnet run -- <users.db file>`");
+        ansi.WriteLine("Usage: `dotnet run -- <users database file>`");
         Environment.Exit(1);
     }
     
     var path = args[0];
+    
+    Console.CancelKeyPress += delegate {
+        ansi.WriteLine();
+        if (new ConfirmationPrompt("Do you want to save what you have?").Show(ansi)) {
+            SaveUsers(path);
+        }
+    };
+    
     LoadUsers(path);
     DoMenu(Logon());
     SaveUsers(path);
