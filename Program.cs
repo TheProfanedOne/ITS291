@@ -6,15 +6,16 @@
 
 namespace ITS291;
 
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.Sqlite;
 using static User;
 using SelTuple = ValueTuple<string, Func<User, bool>>;
 
-
-internal class Program {
-    /// Abbreviation (kind of) for AnsiConsole.Console
-    private static readonly IAnsiConsole ansi = AnsiConsole.Console;
+public class Program {
+    /// <summary><c>IAnsiConsole</c> "instance" to be used by this program</summary>
+    private static readonly IAnsiConsole ansi = AnsiConsole.Create(new() {
+        Ansi = AnsiSupport.Detect,
+        ColorSystem = ColorSystemSupport.Detect,
+    });
     
     /// Dictionary of users
     private static readonly Dictionary<string, User> users = new();
@@ -30,7 +31,7 @@ internal class Program {
             using var conn = new SqliteConnection(connStrB.ConnectionString);
             conn.Open();
         
-            PopulateUsers(conn, users);
+            LoadUsersFromDatabase(conn, users);
         } catch (SqliteException) {
             connStrB.Mode = SqliteOpenMode.ReadWriteCreate;
             using var conn = new SqliteConnection(connStrB.ConnectionString);
@@ -73,7 +74,6 @@ internal class Program {
     }
     
     /// Creates and displays a table of all users' information
-    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
     private static bool ListUsers(User unused) {
         ansi.Write(new Table()
             .AddColumns(
@@ -92,26 +92,38 @@ internal class Program {
         return true;
     }
     
+    private static ValidationResult Err(string s) => ValidationResult.Error(s);
+    private static ValidationResult Ok() => ValidationResult.Success();
+    
+    private static (bool, string) ValidateName(string n) => n switch {
+        _ when string.IsNullOrWhiteSpace(n) => (true, "[red]Username cannot be empty[/]"),
+        _ when users.ContainsKey(n)         => (true, "[red]Username already exists[/]"),
+        _                                   => (false, null)
+    };
+    
+    private static (bool, string) ValidatePass(string p) => p switch {
+        _ when string.IsNullOrWhiteSpace(p) => (true, "[red]Password cannot be an empty string[/]"),
+        _ when p.Length < 8                 => (true, "[red]Password must be at least 8 characters[/]"),
+        _ when p.Any(char.IsWhiteSpace)     => (true, "[red]Password cannot contain whitespace[/]"),
+        _ when !p.Any(char.IsUpper)         => (true, "[red]Password must contain at least one uppercase letter[/]"),
+        _ when !p.Any(char.IsLower)         => (true, "[red]Password must contain at least one lowercase letter[/]"),
+        _ when p.All(char.IsLetter)         => (true, "[red]Password must contain at least one non-letter character[/]"),
+        _                                   => (false, null)
+    };
+    
     /// Username validation function
-    private static ValidationResult NameValidator(string n) => n switch {
-        _ when string.IsNullOrWhiteSpace(n) => ValidationResult.Error("[red]Username cannot be empty[/]"),
-        _ when users.ContainsKey(n)         => ValidationResult.Error("[red]Username already exists[/]"),
-        _                                   => ValidationResult.Success()
+    private static ValidationResult NameValidator(string n) => ValidateName(n) switch {
+        (true, var msg) => Err(msg),
+        _               => Ok()
     };
     
     /// Password validation function
-    private static ValidationResult PassValidator(string p) => p switch {
-        _ when string.IsNullOrWhiteSpace(p) => ValidationResult.Error("[red]Password cannot be an empty string[/]"),
-        _ when p.Length < 8                 => ValidationResult.Error("[red]Password must be at least 8 characters[/]"),
-        _ when p.Any(char.IsWhiteSpace)     => ValidationResult.Error("[red]Password cannot contain whitespace[/]"),
-        _ when !p.Any(char.IsUpper)         => ValidationResult.Error("[red]Password must contain at least one uppercase letter[/]"),
-        _ when !p.Any(char.IsLower)         => ValidationResult.Error("[red]Password must contain at least one lowercase letter[/]"),
-        _ when p.All(char.IsLetter)         => ValidationResult.Error("[red]Password must contain at least one non-letter character[/]"),
-        _                                   => ValidationResult.Success()
+    private static ValidationResult PassValidator(string p) => ValidatePass(p) switch {
+        (true, var msg) => Err(msg),
+        _               => Ok()
     };
     
     /// Adds a user to the dictionary
-    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
     private static bool AddUser(User unused) {
         var name = new TextPrompt<string>("Enter [green]username[/]:")
             .Validate(NameValidator)
@@ -131,7 +143,6 @@ internal class Program {
     }
     
     /// Removes a user from the dictionary
-    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
     private static bool RemoveUser(User unused) {
         var name = new SelectionPrompt<string>()
             .Title("Select [green]user[/] to remove:")
@@ -263,26 +274,119 @@ internal class Program {
     
         while (menu.Show(ansi).Item2(user)) {}
     }
+
+    private static WebApplication StartWebApi(string[] args) {
+        var builder = WebApplication.CreateBuilder(args);
+        
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        
+        var app = builder.Build();
+        
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        
+        app.UseHttpsRedirection();
+        
+        var serializerOptions = JsonSerializerOptions.Default;
+        const string contentType = "application/json";
+        app.MapGet("/users/list", () => Results.Json(
+            from u in users.Values select new { user_id = u.UserId, username = u.Username },
+            serializerOptions, contentType, StatusCodes.Status200OK
+        ));
+        app.MapPost("/users", (UserPost body) => {
+            switch (ValidateName(body.username)) { case (true, var msg): return Results.BadRequest(msg); }
+            switch (ValidatePass(body.password)) { case (true, var msg): return Results.BadRequest(msg); }
+            if (body.account_balance < 0) return Results.BadRequest("Account balance cannot be negative");
+            users.Add(body.username, new(body));
+            return Results.NoContent();
+        });
+        app.MapDelete("/{username}", (string username) => users.Remove(username)
+            ? Results.NoContent()
+            : Results.NotFound($"Unknown user: `{username}`")
+        );
+        app.MapGet("/{username}", (string username) => users.TryGetValue(username, out var user)
+            ? Results.Json(new {
+                user_id = user.UserId,
+                username = user.Username,
+                account_balance = user.AccountBalance,
+                item_count = user.Items.Count
+            }, serializerOptions, contentType, StatusCodes.Status200OK)
+            : Results.NotFound($"Unknown user: `{username}`")
+        );
+        IResult IncResult(User user, decimal amount) {
+            user.IncrementBalance(amount);
+            return Results.NoContent();
+        }
+        IResult DecResult(User user, decimal amount) {
+            try {
+                user.DecrementBalance(amount);
+                return Results.NoContent();
+            } catch (BalanceOverdrawException ex) {
+                return Results.BadRequest(ex.Message);
+            }
+        }
+        app.MapPut("/{username}/accountBalance", (string username, string op, decimal amount) => {
+            if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user `{username}`");
+            if (amount < 0) return Results.BadRequest("Amount cannot be negative");
+            return op switch {
+                "inc" => IncResult(user, amount),
+                "dec" => DecResult(user, amount),
+                _ => Results.BadRequest($"Invalid operation: `{op}`")
+            };
+        });
+        app.MapGet("/{username}/items", (string username) => users.TryGetValue(username, out var user)
+            ? Results.Json(
+                from i in user.Items select new { name = i.Name, price = i.Price },
+                serializerOptions, contentType, StatusCodes.Status200OK
+            )
+            : Results.NotFound($"Unknown user: `{username}`")
+        );
+        app.MapPost("/{username}/items", (string username, ItemPost body) => {
+            if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user: `{username}`");
+            if (string.IsNullOrWhiteSpace(body.name)) return Results.BadRequest("Name cannot be empty");
+            if (body.price < 0) return Results.BadRequest("Price cannot be negative");
+            user.AddItem(body.name, body.price);
+            return Results.NoContent();
+        });
+        app.MapDelete("/{username}/item/{name}", (string username, string name) => {
+            if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user: `{username}`");
+            try {
+                user.RemoveItem(user.Items.First(i => i.Name == name));
+                return Results.NoContent();
+            } catch (InvalidOperationException) {
+                return Results.NotFound($"Unknown item: `{name}`");
+            }
+        });
+        
+        app.RunAsync("https://localhost:5000");
+        return app;
+    }
     
     public static void Main(string[] args) {
         Console.OutputEncoding = Encoding.UTF8;
 
         if (args.Length != 1) {
-            ansi.WriteLine("Usage: `dotnet run -- <users database file>`");
+            ansi.WriteLine("Usage: `dotnet run -- <database file>`");
             Environment.Exit(1);
         }
 
         var path = args[0];
+
+        LoadUsers(path);
+        var app = StartWebApi(args);
 
         Console.CancelKeyPress += delegate {
             AnsiConsole.WriteLine();
             if (new ConfirmationPrompt("Do you want to save what you have?").Show(ansi)) {
                 SaveUsers(path);
             }
+            app.StopAsync().Wait();
         };
 
-        LoadUsers(path);
         DoMenu(Logon());
         SaveUsers(path);
+        
+        app.StopAsync().Wait();
     }
 }

@@ -1,17 +1,8 @@
 namespace ITS291;
 
 using System.Data;
-using Microsoft.Data.Sqlite;
 using System.Security.Cryptography;
-
-/// A record that describes an item that a user may have
-public record Item(string Name, decimal Price);
-
-/// An exception class for when a user tries to withdraw more money than they have
-public class BalanceOverdrawException : Exception {
-    public BalanceOverdrawException() : base("Insufficient funds.") {}
-    public BalanceOverdrawException(string msg) : base(msg) {}
-}
+using Microsoft.Data.Sqlite;
 
 /// A class that describes a user
 public sealed class User {
@@ -19,17 +10,20 @@ public sealed class User {
     public User(string name, string pass, decimal bal = 0.00M) {
         UserId = Guid.NewGuid();
         Username = name;
-        _salt = Guid.NewGuid().ToByteArray();
-        PasswordHash = ComputePasswordHash(_salt, pass);
+        Salt = Guid.NewGuid().ToByteArray();
+        PasswordHash = ComputePasswordHash(Salt, pass);
         _bal = bal;
         _items = new();
     }
+    
+    /// Secondary Constructor (from POST request)
+    public User(UserPost post) : this(post.username, post.password, post.account_balance) {}
 
-    /// Secondary Constructor (for reading from database)
+    /// Ternary Constructor (for reading from database)
     private User(IDataReader reader) {
         UserId = reader.GetGuid(reader.GetOrdinal("userid"));
         Username = reader.GetString(reader.GetOrdinal("username"));
-        _salt = (byte[]) reader.GetValue(reader.GetOrdinal("salt"));
+        Salt = (byte[]) reader.GetValue(reader.GetOrdinal("salt"));
         PasswordHash = (byte[]) reader.GetValue(reader.GetOrdinal("pass"));
         _bal = reader.GetDecimal(reader.GetOrdinal("balance"));
         
@@ -45,8 +39,20 @@ public sealed class User {
         }
     }
     
+    /// A record that describes an item that a user may have
+    public record Item(string Name, decimal Price);
+    public record ItemPost(string name, decimal price);
+
+    /// An exception class for when a user tries to withdraw more money than they have
+    public class BalanceOverdrawException : Exception {
+        public BalanceOverdrawException() : base("Insufficient funds.") {}
+        public BalanceOverdrawException(string msg) : base(msg) {}
+    }
+    
+    public record UserPost(string username, string password, decimal account_balance);
+    
     /// Populates the "users" dictionary with the users in the database (if the database file already exists)
-    public static void PopulateUsers(SqliteConnection conn, Dictionary<string, User> users) {
+    public static void LoadUsersFromDatabase(SqliteConnection conn, Dictionary<string, User> users) {
         using var cmd = conn.CreateCommand();
         cmd.CommandText = /* language=SQLite */ """
             select u.*, i.name, i.price
@@ -114,7 +120,7 @@ public sealed class User {
         foreach (var user in users.Values) {
             cmd.Parameters["@userid"].Value = user.UserId;
             cmd.Parameters["@username"].Value = user.Username;
-            cmd.Parameters["@salt"].Value = user._salt;
+            cmd.Parameters["@salt"].Value = user.Salt;
             cmd.Parameters["@pass"].Value = user.PasswordHash;
             cmd.Parameters["@bal"].Value = user._bal;
             cmd.ExecuteNonQuery();
@@ -135,42 +141,35 @@ public sealed class User {
             }
         }
     }
-
+    
     /// Adds an item to the user's list of items
     public void AddItem(string name, decimal price) => _items.Add(new(name, price));
-
     /// Removes an item from the user's list of items
-    public void RemoveItem(Item item) {
-        _items.Remove(item);
-    }
+    public void RemoveItem(Item item) => _items.Remove(item);
 
     /// Increments the user's account balance
     public void IncrementBalance(decimal amount) {
-        if (amount < 0) throw new ArgumentException("Amount must be positive");
+        if (amount < 0m) throw new ArgumentException("Amount must be positive", nameof(amount));
         _bal += amount;
     }
     
     /// Decrements the user's account balance
     public void DecrementBalance(decimal amount, bool preventOverdraw = true) {
-        if (amount < 0) throw new ArgumentException("Amount must be positive");
+        if (amount < 0m) throw new ArgumentException("Amount must be positive", nameof(amount));
         if (preventOverdraw && amount > _bal) throw new BalanceOverdrawException();
         _bal -= amount;
     }
     
     /// Checks if the given password matches the user's password
-    public bool CheckPassword(string pass) {
-        return PasswordHash.SequenceEqual(ComputePasswordHash(_salt, pass));
-    }
+    public bool CheckPassword(string pass) => PasswordHash.SequenceEqual(ComputePasswordHash(Salt, pass));
     
     /// Determines the color to use for a given balance
-    public static string BalanceColor(decimal balance) {
-        return balance switch {
-            > 0 => "green",
-            < 0 => "red",
-            _   => "yellow"
-        };
-    }
-    
+    public static string BalanceColor(decimal balance) => balance switch {
+        > 0m => "green",
+        < 0m => "red",
+        _    => "yellow"
+    };
+
     /// Computes the password hash for a given password
     private static byte[] ComputePasswordHash(byte[] salt, string pass) {
         byte[] GetHash(byte[] b) => SHA256.HashData(b);
@@ -180,12 +179,12 @@ public sealed class User {
 
     public Guid                UserId               { get; }
     public string              Username             { get; }
+    private byte[]             Salt                 { get; }
     public byte[]              PasswordHash         { private get; set; }
-    // public decimal             AccountBalance       => _bal;
+    public decimal             AccountBalance       => _bal;
     public Markup              AccountBalanceMarkup => new($"[{BalanceColor(_bal)}]{_bal:C}[/]");
     public IReadOnlyList<Item> Items                => _items;
 
     private decimal             _bal;
-    private readonly byte[]     _salt;
     private readonly List<Item> _items;
 }

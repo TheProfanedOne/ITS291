@@ -1,6 +1,6 @@
-﻿using Spectre.Console.Rendering;
+﻿namespace ITS291;
 
-namespace ITS291;
+using Spectre.Console.Rendering;
 
 public static class Extensions {
     // Extension method that adds an IEnumerable of selection groups to a SelectionPrompt
