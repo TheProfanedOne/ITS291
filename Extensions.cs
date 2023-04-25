@@ -17,7 +17,7 @@ public static class Extensions {
         foreach (var row in rows) table.AddRow(rowFunc(row));
         return table;
     }
-
+    
     public static void Write(this IAnsiConsole console, params FormattableString[] sections) {
         foreach (var section in sections) {
             console.Write(Markup.FromInterpolated(section));

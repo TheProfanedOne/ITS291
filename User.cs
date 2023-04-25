@@ -1,8 +1,9 @@
-namespace ITS291;
-
+using System.Text.Json.Serialization;
 using System.Data;
 using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
+
+namespace ITS291;
 
 /// A class that describes a user
 public sealed class User {
@@ -40,7 +41,19 @@ public sealed class User {
     }
     
     /// A record that describes an item that a user may have
-    public record Item(string Name, decimal Price);
+    public record Item(string Name, decimal Price) {
+        public class ItemConverter : JsonConverter<Item> {
+            public override Item Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+                throw new NotImplementedException("This Should Not Be Used (ItemConverter.Read)");
+
+            public override void Write(Utf8JsonWriter writer, Item value, JsonSerializerOptions options) {
+                writer.WriteStartObject();
+                writer.WriteString("name", value.Name);
+                writer.WriteNumber("price", value.Price);
+                writer.WriteEndObject();
+            }
+        }
+    }
     public record ItemPost(string name, decimal price);
 
     /// An exception class for when a user tries to withdraw more money than they have
@@ -144,6 +157,7 @@ public sealed class User {
     
     /// Adds an item to the user's list of items
     public void AddItem(string name, decimal price) => _items.Add(new(name, price));
+    public void AddItem(ItemPost post) => AddItem(post.name, post.price);
     /// Removes an item from the user's list of items
     public void RemoveItem(Item item) => _items.Remove(item);
 
@@ -152,12 +166,24 @@ public sealed class User {
         if (amount < 0m) throw new ArgumentException("Amount must be positive", nameof(amount));
         _bal += amount;
     }
+    public IResult IncResult(decimal amount) {
+        IncrementBalance(amount);
+        return Results.NoContent();
+    }
     
     /// Decrements the user's account balance
     public void DecrementBalance(decimal amount, bool preventOverdraw = true) {
         if (amount < 0m) throw new ArgumentException("Amount must be positive", nameof(amount));
         if (preventOverdraw && amount > _bal) throw new BalanceOverdrawException();
         _bal -= amount;
+    }
+    public IResult DecResult(decimal amount) {
+        try {
+            DecrementBalance(amount);
+            return Results.NoContent();
+        } catch (BalanceOverdrawException ex) {
+            return Results.BadRequest(ex.Message);
+        }
     }
     
     /// Checks if the given password matches the user's password
@@ -187,4 +213,23 @@ public sealed class User {
 
     private decimal             _bal;
     private readonly List<Item> _items;
+    
+    public class UserConverter : JsonConverter<User> {
+        private readonly bool _isLong;
+        public UserConverter(bool isLong = false) => _isLong = isLong;
+    
+        public override User Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            throw new NotImplementedException("This Should Not Be Used (UserConverter.Read)");
+
+        public override void Write(Utf8JsonWriter writer, User value, JsonSerializerOptions options) {
+            writer.WriteStartObject();
+            writer.WriteString("user_id", value.UserId);
+            writer.WriteString("username", value.Username);
+            if (_isLong) {
+                writer.WriteNumber("account_balance", value.AccountBalance);
+                writer.WriteNumber("item_count", value._items.Count);
+            }
+            writer.WriteEndObject();
+        }
+    }
 }

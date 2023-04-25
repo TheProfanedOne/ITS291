@@ -288,13 +288,11 @@ public class Program {
         
         app.UseHttpsRedirection();
         
-        var serializerOptions = JsonSerializerOptions.Default;
-        const string contentType = "application/json";
-        app.MapGet("/users/list", () => Results.Json(
-            from u in users.Values select new { user_id = u.UserId, username = u.Username },
-            serializerOptions, contentType, StatusCodes.Status200OK
-        ));
-        app.MapPost("/users", (UserPost body) => {
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true, Converters = { new UserConverter() } };
+            app.MapGet("/users/list", () => Results.Json(users.Values, options));
+        }
+        app.MapPost("/users", delegate(UserPost body) {
             switch (ValidateName(body.username)) { case (true, var msg): return Results.BadRequest(msg); }
             switch (ValidatePass(body.password)) { case (true, var msg): return Results.BadRequest(msg); }
             if (body.account_balance < 0) return Results.BadRequest("Account balance cannot be negative");
@@ -305,51 +303,37 @@ public class Program {
             ? Results.NoContent()
             : Results.NotFound($"Unknown user: `{username}`")
         );
-        app.MapGet("/{username}", (string username) => users.TryGetValue(username, out var user)
-            ? Results.Json(new {
-                user_id = user.UserId,
-                username = user.Username,
-                account_balance = user.AccountBalance,
-                item_count = user.Items.Count
-            }, serializerOptions, contentType, StatusCodes.Status200OK)
-            : Results.NotFound($"Unknown user: `{username}`")
-        );
-        IResult IncResult(User user, decimal amount) {
-            user.IncrementBalance(amount);
-            return Results.NoContent();
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true, Converters = { new UserConverter(true) } };
+            app.MapGet("/{username}", (string username) => users.TryGetValue(username, out var user)
+                ? Results.Json(user, options)
+                : Results.NotFound($"Unknown user: `{username}`")
+            );
         }
-        IResult DecResult(User user, decimal amount) {
-            try {
-                user.DecrementBalance(amount);
-                return Results.NoContent();
-            } catch (BalanceOverdrawException ex) {
-                return Results.BadRequest(ex.Message);
-            }
-        }
-        app.MapPut("/{username}/accountBalance", (string username, string op, decimal amount) => {
+        app.MapPut("/{username}/accountBalance", delegate(string username, string op, decimal amount) {
             if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user `{username}`");
             if (amount < 0) return Results.BadRequest("Amount cannot be negative");
             return op switch {
-                "inc" => IncResult(user, amount),
-                "dec" => DecResult(user, amount),
+                "inc" => user.IncResult(amount),
+                "dec" => user.DecResult(amount),
                 _ => Results.BadRequest($"Invalid operation: `{op}`")
             };
         });
-        app.MapGet("/{username}/items", (string username) => users.TryGetValue(username, out var user)
-            ? Results.Json(
-                from i in user.Items select new { name = i.Name, price = i.Price },
-                serializerOptions, contentType, StatusCodes.Status200OK
-            )
-            : Results.NotFound($"Unknown user: `{username}`")
-        );
-        app.MapPost("/{username}/items", (string username, ItemPost body) => {
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true, Converters = { new Item.ItemConverter() } };
+            app.MapGet("/{username}/items", (string username) => users.TryGetValue(username, out var user)
+                ? Results.Json(user.Items, options)
+                : Results.NotFound($"Unknown user: `{username}`")
+            );
+        }
+        app.MapPost("/{username}/items", delegate(string username, ItemPost body) {
             if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user: `{username}`");
             if (string.IsNullOrWhiteSpace(body.name)) return Results.BadRequest("Name cannot be empty");
             if (body.price < 0) return Results.BadRequest("Price cannot be negative");
-            user.AddItem(body.name, body.price);
+            user.AddItem(body);
             return Results.NoContent();
         });
-        app.MapDelete("/{username}/item/{name}", (string username, string name) => {
+        app.MapDelete("/{username}/item/{name}", delegate(string username, string name) {
             if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user: `{username}`");
             try {
                 user.RemoveItem(user.Items.First(i => i.Name == name));
