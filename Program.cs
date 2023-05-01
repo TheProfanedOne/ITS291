@@ -288,10 +288,13 @@ public class Program {
         
         app.UseHttpsRedirection();
         
-        {
-            var options = new JsonSerializerOptions { WriteIndented = true, Converters = { new UserConverter() } };
-            app.MapGet("/users/list", () => Results.Json(users.Values, options));
+        (bool, User) TryGetUser(string username) {
+            var res = users.TryGetValue(username, out var user);
+            return (res, user);
         }
+        
+        JsonSerializerOptions baseOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+        app.MapGet("/users/list", () => Results.Json(users.Values, new(baseOptions) { Converters = { new UserConverter() } }));
         app.MapPost("/users", delegate(UserPost body) {
             switch (ValidateName(body.username)) { case (true, var msg): return Results.BadRequest(msg); }
             switch (ValidatePass(body.password)) { case (true, var msg): return Results.BadRequest(msg); }
@@ -303,29 +306,23 @@ public class Program {
             ? Results.NoContent()
             : Results.NotFound($"Unknown user: `{username}`")
         );
-        {
-            var options = new JsonSerializerOptions { WriteIndented = true, Converters = { new UserConverter(true) } };
-            app.MapGet("/{username}", (string username) => users.TryGetValue(username, out var user)
-                ? Results.Json(user, options)
-                : Results.NotFound($"Unknown user: `{username}`")
-            );
-        }
-        app.MapPut("/{username}/accountBalance", delegate(string username, string op, decimal amount) {
-            if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user `{username}`");
-            if (amount < 0) return Results.BadRequest("Amount cannot be negative");
-            return op switch {
+        app.MapGet("/{username}", (string username) => TryGetUser(username) switch {
+            (true, var user) => Results.Json(user, new(baseOptions) { Converters = { new UserConverter(true) } }),
+            _ => Results.NotFound($"Unknown user: `{username}`")
+        });
+        app.MapPut("/{username}/accountBalance", (string username, string op, decimal amount) => TryGetUser(username) switch {
+            (false, _) => Results.NotFound($"Unknown user `{username}`"),
+            _ when amount < 0 => Results.BadRequest("Amount cannot be negative"),
+            var (_, user) => op switch {
                 "inc" => user.IncResult(amount),
                 "dec" => user.DecResult(amount),
                 _ => Results.BadRequest($"Invalid operation: `{op}`")
-            };
+            }
         });
-        {
-            var options = new JsonSerializerOptions { WriteIndented = true, Converters = { new Item.ItemConverter() } };
-            app.MapGet("/{username}/items", (string username) => users.TryGetValue(username, out var user)
-                ? Results.Json(user.Items, options)
-                : Results.NotFound($"Unknown user: `{username}`")
-            );
-        }
+        app.MapGet("/{username}/items", (string username) => TryGetUser(username) switch {
+            (true, var user) => Results.Json(user.Items, new(baseOptions) { Converters = { new ItemConverter() } }),
+            _ => Results.NotFound($"Unknown user: `{username}`")
+        });
         app.MapPost("/{username}/items", delegate(string username, ItemPost body) {
             if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user: `{username}`");
             if (string.IsNullOrWhiteSpace(body.name)) return Results.BadRequest("Name cannot be empty");
@@ -333,14 +330,9 @@ public class Program {
             user.AddItem(body);
             return Results.NoContent();
         });
-        app.MapDelete("/{username}/item/{name}", delegate(string username, string name) {
-            if (!users.TryGetValue(username, out var user)) return Results.NotFound($"Unknown user: `{username}`");
-            try {
-                user.RemoveItem(user.Items.First(i => i.Name == name));
-                return Results.NoContent();
-            } catch (InvalidOperationException) {
-                return Results.NotFound($"Unknown item: `{name}`");
-            }
+        app.MapDelete("/{username}/item/{name}", (string username, string name) => TryGetUser(username) switch {
+            (true, var user) => user.TryRemoveItem(name),
+            _ => Results.NotFound($"Unknown user: `{username}`")
         });
         
         app.RunAsync("https://localhost:5000");
@@ -351,7 +343,7 @@ public class Program {
         Console.OutputEncoding = Encoding.UTF8;
 
         if (args.Length != 1) {
-            ansi.WriteLine("Usage: `dotnet run -- <database file>`");
+            ansi.WriteLine("Usage: `ITS291 <database file>`");
             Environment.Exit(1);
         }
 

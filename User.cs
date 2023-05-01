@@ -41,19 +41,7 @@ public sealed class User {
     }
     
     /// A record that describes an item that a user may have
-    public record Item(string Name, decimal Price) {
-        public class ItemConverter : JsonConverter<Item> {
-            public override Item Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-                throw new NotImplementedException("This Should Not Be Used (ItemConverter.Read)");
-
-            public override void Write(Utf8JsonWriter writer, Item value, JsonSerializerOptions options) {
-                writer.WriteStartObject();
-                writer.WriteString("name", value.Name);
-                writer.WriteNumber("price", value.Price);
-                writer.WriteEndObject();
-            }
-        }
-    }
+    public record Item(string Name, decimal Price);
     public record ItemPost(string name, decimal price);
 
     /// An exception class for when a user tries to withdraw more money than they have
@@ -160,6 +148,14 @@ public sealed class User {
     public void AddItem(ItemPost post) => AddItem(post.name, post.price);
     /// Removes an item from the user's list of items
     public void RemoveItem(Item item) => _items.Remove(item);
+    public IResult TryRemoveItem(string name) {
+        try {
+            RemoveItem(_items.First(i => i.Name == name));
+            return Results.NoContent();
+        } catch (InvalidOperationException) {
+            return Results.NotFound($"Unknown item: `{name}`");
+        }
+    }
 
     /// Increments the user's account balance
     public void IncrementBalance(decimal amount) {
@@ -229,6 +225,18 @@ public sealed class User {
                 writer.WriteNumber("account_balance", value.AccountBalance);
                 writer.WriteNumber("item_count", value._items.Count);
             }
+            writer.WriteEndObject();
+        }
+    }
+    
+    public class ItemConverter : JsonConverter<Item> {
+        public override Item Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            throw new NotImplementedException("This Should Not Be Used (ItemConverter.Read)");
+
+        public override void Write(Utf8JsonWriter writer, Item value, JsonSerializerOptions options) {
+            writer.WriteStartObject();
+            writer.WriteString("name", value.Name);
+            writer.WriteNumber("price", value.Price);
             writer.WriteEndObject();
         }
     }
